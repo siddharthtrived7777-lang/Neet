@@ -1,0 +1,6 @@
+{
+  "name": "NEET Study Planner",
+  "description": "A premium, responsive, and offline-first study tracker, spaced-repetition revision scheduler, and intelligent analytics engine for NEET preparation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
