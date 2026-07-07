@@ -13,7 +13,6 @@ import {
   BarChart2,
   Award,
   Search,
-  Sparkles,
   Download,
   Upload,
   Menu,
@@ -24,7 +23,10 @@ import {
   LogOut,
   RefreshCw,
   Target,
-  Trophy
+  AlertTriangle,
+  Flame,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType } from './types';
 import { getChapterSubject } from './neetData';
@@ -41,7 +43,8 @@ import {
   generateId,
   addDays,
   daysBetween,
-  triggerToast
+  triggerToast,
+  calculateStreaks
 } from './utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -74,9 +77,7 @@ import ChapterStatusPage from './components/ChapterStatusPage';
 import AnalyticsPage from './components/AnalyticsPage';
 import TestTrackerPage from './components/TestTrackerPage';
 import SearchPage from './components/SearchPage';
-import AiInsightsPanel from './components/AiInsightsPanel';
 import TodayFocusPage from './components/TodayFocusPage';
-import MilestonesPage from './components/MilestonesPage';
 
 // Helper to fix any previously miscategorized "Basic Maths" entries to Physics
 function normalizeBasicMaths(
@@ -114,12 +115,37 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [searchInitialChapter, setSearchInitialChapter] = useState<string>('');
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const [resetConfirmText, setResetConfirmText] = useState<string>('');
+
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    return localStorage.getItem('neet_dark_mode') === 'true';
+  });
+  const [showStreakStats, setShowStreakStats] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('neet_dark_mode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('neet_dark_mode', 'false');
+    }
+  }, [isDark]);
 
   // Core States
   const [entries, setEntries] = useState<StudyEntry[]>([]);
   const [tests, setTests] = useState<TestEntry[]>([]);
   const [chapterStatuses, setChapterStatuses] = useState<ChapterStatus[]>([]);
   const [revisions, setRevisions] = useState<RevisionTask[]>([]);
+
+  // Compute Streaks and Total Days Studied
+  const streaks = React.useMemo(() => {
+    return calculateStreaks(entries);
+  }, [entries]);
+
+  const totalStudyDays = React.useMemo(() => {
+    return new Set(entries.map(e => e.date)).size;
+  }, [entries]);
 
   // Exam Countdown States
   const [examDate, setExamDate] = useState<string | null>(() => localStorage.getItem('neet_exam_date'));
@@ -996,11 +1022,13 @@ export default function App() {
     saveChapterStatuses(seed.chapterStatuses);
     saveRevisions(seed.revisions);
     setShowResetConfirm(false);
+    setResetConfirmText('');
 
     // Sync to Firebase if authenticated
     if (auth.currentUser) {
       syncLocalDataToCloud(auth.currentUser.uid, seed);
     }
+    triggerToast('All data has been reset to default templates successfully.', 'success');
   };
 
   // Nav to chapter search page and set query
@@ -1072,7 +1100,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafbfb] flex flex-col md:flex-row text-slate-800">
+    <div className="min-h-screen bg-[#fafbfb] dark:bg-slate-950 flex flex-col md:flex-row text-slate-800 dark:text-slate-100">
       
       {/* Mobile Top Navigation Header Bar */}
       <header className="md:hidden bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shadow-md sticky top-0 z-40">
@@ -1081,6 +1109,13 @@ export default function App() {
           <span className="font-display font-black text-sm tracking-wide">NEET STUDY PLANNER</span>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="p-1.5 text-slate-300 hover:text-white transition-all rounded-lg"
+            title={isDark ? "Light Mode" : "Dark Mode"}
+          >
+            {isDark ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-400" />}
+          </button>
           {getExamCountdown(true)}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1124,9 +1159,7 @@ export default function App() {
               { id: 'syllabus', label: 'Syllabus Tracker', icon: Layers },
               { id: 'analytics', label: 'Analytics', icon: BarChart2 },
               { id: 'mock-tests', label: 'Mock Scorecard', icon: Award },
-              { id: 'milestones', label: 'Study Milestones', icon: Trophy },
               { id: 'search', label: 'Search Chapter', icon: Search },
-              { id: 'ai-coach', label: 'Aura AI Coach', icon: Sparkles },
               { id: 'today-focus', label: "Today's Focus", icon: Target }
             ].map(item => {
               const IconComp = item.icon;
@@ -1154,7 +1187,22 @@ export default function App() {
 
         {/* Data Persistence Action Controls at bottom of sidebar */}
         <div className="pt-4 border-t border-slate-800 space-y-3.5">
+          {/* Appearance / Theme Toggle */}
           <div className="space-y-1">
+            <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-500 block">Appearance</span>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-all cursor-pointer text-xs font-semibold"
+            >
+              <div className="flex items-center gap-2">
+                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                <span>{isDark ? "Switch to Light" : "Switch to Dark"}</span>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">{isDark ? "Dark" : "Light"}</span>
+            </button>
+          </div>
+
+          <div className="space-y-1 border-t border-slate-850 pt-2.5">
             <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-500 block">Database backup</span>
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
               <button
@@ -1178,32 +1226,15 @@ export default function App() {
 
           <div className="space-y-1 border-t border-slate-800 pt-2.5">
             <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-500 block">Reset Application</span>
-            {!showResetConfirm ? (
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="w-full text-center text-[11px] font-bold py-2 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-red-300 rounded-lg transition-all cursor-pointer"
-              >
-                Reset Days & Hours
-              </button>
-            ) : (
-              <div className="space-y-1.5 bg-red-950/60 p-2 rounded-lg border border-red-900/40">
-                <p className="text-[9px] text-red-300 font-semibold leading-normal text-center">Delete all sessions permanently?</p>
-                <div className="grid grid-cols-2 gap-1.5 pt-0.5 font-bold text-[10px]">
-                  <button
-                    onClick={handleResetData}
-                    className="py-1 bg-red-600 hover:bg-red-500 text-white rounded text-center cursor-pointer font-extrabold"
-                  >
-                    Yes, Reset
-                  </button>
-                  <button
-                    onClick={() => setShowResetConfirm(false)}
-                    className="py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+            <button
+              onClick={() => {
+                setShowResetConfirm(true);
+                setResetConfirmText('');
+              }}
+              className="w-full text-center text-[11px] font-bold py-2 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-red-300 rounded-lg transition-all cursor-pointer"
+            >
+              Reset Days & Hours
+            </button>
           </div>
 
           {/* Cloud Sync Integration Segment */}
@@ -1264,19 +1295,77 @@ export default function App() {
       {/* Main app content stage */}
       <main className="flex-1 p-5 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
         {/* Global Page Header & Countdown */}
-        <div id="global-page-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/60 pb-4 mb-6 gap-3">
-          <div>
-            <span className="text-[10px] font-bold text-medical-600 uppercase tracking-widest block">NEET STUDY PLANNER</span>
-            <h1 className="text-xl md:text-2xl font-display font-extrabold text-slate-800 capitalize tracking-tight">
-              {activeTab === 'dashboard' ? 'Overview Dashboard' : activeTab.replace('-', ' ')}
-            </h1>
+        <div id="global-page-header" className="flex flex-col md:flex-row md:items-start md:items-center md:justify-start border-b border-slate-200/60 dark:border-slate-800 pb-4 mb-6 gap-4 md:gap-6">
+          <div className="flex items-start md:items-center gap-3 flex-wrap">
+            <div>
+              <span className="text-[10px] font-bold text-medical-600 dark:text-medical-400 uppercase tracking-widest block">NEET STUDY PLANNER</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl md:text-2xl font-display font-extrabold text-slate-800 dark:text-white capitalize tracking-tight">
+                  {activeTab === 'dashboard' ? 'Overview Dashboard' : activeTab.replace('-', ' ')}
+                </h1>
+                
+                {/* Clickable Streak Indicator right after the Heading */}
+                {activeTab === 'dashboard' && (
+                  <div className="relative inline-block text-left z-20">
+                    <button
+                      onClick={() => setShowStreakStats(!showStreakStats)}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm shadow-amber-500/5"
+                      title="Click to view streak statistics"
+                    >
+                      <Flame className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+                      <span>{streaks.currentStreak} days</span>
+                    </button>
+
+                    <AnimatePresence>
+                      {showStreakStats && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-30" 
+                            onClick={() => setShowStreakStats(false)} 
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl z-45 space-y-3 text-slate-800 dark:text-slate-100"
+                          >
+                            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                              <Flame className="w-4.5 h-4.5 text-amber-500 animate-bounce" />
+                              <span className="font-display font-bold text-xs text-slate-700 dark:text-slate-200">Active Recall Streak</span>
+                            </div>
+                            
+                            <div className="space-y-2 text-xs text-left">
+                              <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Active Streak:</span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{streaks.currentStreak} days</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Longest Streak:</span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{streaks.longestStreak} days</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Strike Total:</span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{totalStudyDays} days</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2 bg-white border border-slate-200/40 rounded-xl px-3.5 py-2 shadow-sm text-xs text-slate-600 shrink-0">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="font-semibold text-slate-700">{formattedToday}</span>
-              {getExamCountdown()}
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800 rounded-xl px-3.5 py-2 shadow-sm text-xs text-slate-600 dark:text-slate-300 shrink-0">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-semibold text-slate-700 dark:text-slate-200">{formattedToday}</span>
+                {getExamCountdown()}
+              </div>
             </div>
           </div>
         </div>
@@ -1342,15 +1431,6 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'ai-coach' && (
-          <AiInsightsPanel
-            entries={entries}
-            tests={tests}
-            chapterStatuses={chapterStatuses}
-            revisions={revisions}
-          />
-        )}
-
         {activeTab === 'today-focus' && (
           <TodayFocusPage
             entries={entries}
@@ -1358,15 +1438,6 @@ export default function App() {
             revisions={revisions}
             onNavigateToTab={(tab) => setActiveTab(tab)}
             onSetSearchQuery={(query) => setSearchInitialChapter(query)}
-          />
-        )}
-
-        {activeTab === 'milestones' && (
-          <MilestonesPage
-            entries={entries}
-            chapterStatuses={chapterStatuses}
-            revisions={revisions}
-            tests={tests}
           />
         )}
       </main>
@@ -1386,6 +1457,78 @@ export default function App() {
         currentDate={examDate}
         onSave={handleSaveExamDate}
       />
+
+      {/* High-Security Reset Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-[120] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="bg-slate-900 border border-red-900/65 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl shadow-rose-950/20 text-center relative overflow-hidden"
+            >
+              {/* Warning Header Indicator */}
+              <div className="w-14 h-14 bg-red-950/50 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 shadow-inner">
+                <AlertTriangle className="w-7 h-7 text-red-500 animate-bounce" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-display text-lg font-black text-white tracking-tight">
+                  Are you absolutely sure?
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  This action will <span className="text-red-400 font-bold">permanently delete</span> all your accumulated study days, logged hours, mock scores, active recall streaks, and revision schedules. 
+                </p>
+                <p className="text-xs font-bold text-slate-300 bg-red-950/30 border border-red-900/30 px-3 py-1.5 rounded-lg inline-block">
+                  ⚠️ This cannot be undone under any circumstances!
+                </p>
+              </div>
+
+              {/* Secure input mechanism to unlock button */}
+              <div className="space-y-2 text-left">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                  Type <span className="text-red-400 font-mono font-black px-1 bg-slate-800 rounded">RESET</span> to confirm your intent:
+                </label>
+                <input
+                  type="text"
+                  value={resetConfirmText}
+                  onChange={(e) => setResetConfirmText(e.target.value)}
+                  placeholder="Type RESET"
+                  className="w-full text-center px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-sm focus:outline-none focus:border-red-500 transition-all font-bold tracking-widest placeholder:tracking-normal placeholder:font-sans placeholder:font-medium"
+                />
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetConfirm(false);
+                    setResetConfirmText('');
+                  }}
+                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  No, Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetData}
+                  disabled={resetConfirmText !== 'RESET'}
+                  className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    resetConfirmText === 'RESET'
+                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-950/40'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-850'
+                  }`}
+                >
+                  Yes, Reset Everything
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Dynamic Toast System */}
       <AnimatePresence>

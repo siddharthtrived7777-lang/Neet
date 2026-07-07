@@ -5,11 +5,45 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Flame, Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity } from 'lucide-react';
+import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
-import { formatDate, addDays, calculateStreaks, getLogicalTodayDate } from '../utils';
+import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
+
+const NEET_MOTIVATIONAL_THOUGHTS = [
+  "Consistency is the bridge between NEET goals and NEET success. Stay focused on your daily chapters!",
+  "Every single numerical solved in Physics brings you one step closer to your dream medical college.",
+  "Success in NEET isn't about luck. It is about reading NCERT line-by-line, revising consistently, and mastering your mistakes.",
+  "The pain of studying today is nothing compared to the pride of wearing that white coat and stethoscope tomorrow.",
+  "Do not count the hours you study, make the hours count. Revise Chemistry formulas and focus on your goal.",
+  "Biology demands precision and retention. Unblock your spaced revisions today to secure those 360 marks!",
+  "Mistakes are proof that you are trying. Analyze your mock tests, understand the concepts, and keep moving forward.",
+  "The difference between an ordinary aspirant and a NEET topper is what they do with their mock test mistakes.",
+  "Your dedication today determines your rank tomorrow. One chapter at a time, one day at a time, keep going!",
+  "Success doesn't come from what you do occasionally, it comes from what you do consistently.",
+  "When you feel like quitting, remember why you started this medical preparation journey in the first place.",
+  "Syllabus tracking and timely active recall are your ultimate weapons against forgetting curves. Trust the process.",
+  "Focus on progress, not perfection. Master your weak subjects today to build an unbreakable foundation.",
+  "A year of intense focus, discipline, and regular revision can change the trajectory of your entire life.",
+  "Every small study session is a deposit into your future medical career. Make today count!",
+  "Do not let what you cannot do interfere with what you can do. Strengthen your weak chapters now.",
+  "The best way to predict your NEET result is to create it through daily discipline and smart spacing.",
+  "Your dream medical college is waiting for you. Power through the revision and keep your concepts crystal clear.",
+  "An investment in knowledge always pays the best interest. Read NCERT, solve MCQs, and stay self-motivated.",
+  "Strive for excellence, and success will chase you. Master every difficult mechanism in Chemistry today.",
+  "Your only limit is your mind. Push yourself to finish today's focus chapters with high accuracy.",
+  "Preparation is the key to confidence. The more you revise today, the less you will panic on the exam day.",
+  "Hard work beats talent when talent doesn't work hard. Keep practicing your Physics numericals.",
+  "Believe you can and you're halfway there. Keep logging your study hours and reviewing regularly.",
+  "Your daily study logs build the brick-and-mortar of your medical dream. Stay consistent, stay strong!",
+  "NCERT is your ultimate guide. Read between the lines, solve NCERT exemplar questions, and solidify your grip.",
+  "Every mock test is a dress rehearsal for your NEET success. Celebrate the correct ones, study the wrong ones.",
+  "Active recall and spaced repetition are the science of remembering. Let the retention engine guide your study day.",
+  "Patience, persistence, and perspiration make an unbeatable combination for cracking NEET.",
+  "Don't stop when you are tired, stop when you are done. Your medical career begins with today's efforts.",
+  "A champion is defined not by their wins, but by how they recover from their setbacks. Keep pushing, Aspirant!"
+];
 
 interface DashboardProps {
   entries: StudyEntry[];
@@ -30,32 +64,32 @@ export default function Dashboard({
 }: DashboardProps) {
   const todayStr = useMemo(() => getLogicalTodayDate(), []);
 
-  // 1. Compute Streaks
-  const streaks = useMemo(() => {
-    return calculateStreaks(entries);
-  }, [entries]);
+  // Daily new motivational thoughts based on the calendar date
+  const dailyThought = useMemo(() => {
+    const day = new Date().getDate();
+    return NEET_MOTIVATIONAL_THOUGHTS[(day - 1) % NEET_MOTIVATIONAL_THOUGHTS.length];
+  }, []);
 
   // Today's Focus Insight
   const focusData = useMemo(() => {
     return calculateFocusInsight(entries);
   }, [entries]);
 
-  // 2. Today's Metrics
+  // 2. Today's Metrics (accumulating minutes)
   const todayMetrics = useMemo(() => {
-    let studyHrs = 0;
-    let classHrs = 0;
-    let selfHrs = 0;
-    let revHrs = 0;
+    let studyMins = 0;
+    let classMins = 0;
+    let selfMins = 0;
+    let revMins = 0;
     let mcqs = 0;
     let correct = 0;
 
     entries.forEach(e => {
       if (e.date === todayStr) {
-        const hrs = e.durationMinutes / 60;
-        studyHrs += hrs;
-        if (e.studyType === 'Class') classHrs += hrs;
-        else if (e.studyType === 'Self Study') selfHrs += hrs;
-        else if (e.studyType === 'Revision') revHrs += hrs;
+        studyMins += e.durationMinutes;
+        if (e.studyType === 'Class') classMins += e.durationMinutes;
+        else if (e.studyType === 'Self Study') selfMins += e.durationMinutes;
+        else if (e.studyType === 'Revision') revMins += e.durationMinutes;
 
         mcqs += e.mcqsSolved;
         correct += e.mcqsCorrect;
@@ -64,27 +98,45 @@ export default function Dashboard({
 
     const accuracy = mcqs > 0 ? Math.round((correct / mcqs) * 100) : 0;
 
-    return { studyHrs, classHrs, selfHrs, revHrs, mcqs, accuracy };
+    return {
+      studyMins,
+      classMins,
+      selfMins,
+      revMins,
+      studyHrsNum: formatMinutesToDecimalHoursNum(studyMins),
+      classHrsNum: formatMinutesToDecimalHoursNum(classMins),
+      selfHrsNum: formatMinutesToDecimalHoursNum(selfMins),
+      revHrsNum: formatMinutesToDecimalHoursNum(revMins),
+      mcqs,
+      accuracy
+    };
   }, [entries, todayStr]);
 
-  // 3. Periodic Totals
+  // 3. Periodic Totals (accumulating minutes)
   const periodicStats = useMemo(() => {
-    let weekHrs = 0;
-    let monthHrs = 0;
-    let lifetimeHrs = 0;
+    let weekMins = 0;
+    let monthMins = 0;
+    let lifetimeMins = 0;
 
     const oneWeekAgo = addDays(todayStr, -7);
     const oneMonthAgo = addDays(todayStr, -30);
 
     entries.forEach(e => {
-      const hrs = e.durationMinutes / 60;
-      lifetimeHrs += hrs;
+      lifetimeMins += e.durationMinutes;
 
-      if (e.date >= oneWeekAgo) weekHrs += hrs;
-      if (e.date >= oneMonthAgo) monthHrs += hrs;
+      if (e.date >= oneWeekAgo) weekMins += e.durationMinutes;
+      if (e.date >= oneMonthAgo) monthMins += e.durationMinutes;
     });
 
-    return { weekHrs, monthHrs, lifetimeHrs };
+    return {
+      weekMins,
+      monthMins,
+      lifetimeMins,
+      weekHrsStr: formatMinutesToDecimalHours(weekMins),
+      monthHrsStr: formatMinutesToDecimalHours(monthMins),
+      lifetimeHrsStr: formatMinutesToDecimalHours(lifetimeMins),
+      lifetimeHrsNum: formatMinutesToDecimalHoursNum(lifetimeMins)
+    };
   }, [entries, todayStr]);
 
   // 4. Today's Spaced Revision Checklist ("Today's Tasks" notification)
@@ -92,41 +144,46 @@ export default function Dashboard({
     return revisions.filter(r => !r.completed && r.dueDate <= todayStr);
   }, [revisions, todayStr]);
 
-  // 5. Subject wise breakdown (Subject-wise hours)
+  // 5. Subject wise breakdown (Subject-wise hours, accumulating minutes)
   const subjectHrs = useMemo(() => {
-    const hrs = { Physics: 0, Chemistry: 0, Biology: 0 };
+    const mins = { Physics: 0, Chemistry: 0, Biology: 0 };
     entries.forEach(e => {
-      hrs[e.subject] += e.durationMinutes / 60;
+      mins[e.subject] += e.durationMinutes;
     });
-    return hrs;
+    return {
+      Biology: formatMinutesToDecimalHoursNum(mins.Biology),
+      Chemistry: formatMinutesToDecimalHoursNum(mins.Chemistry),
+      Physics: formatMinutesToDecimalHoursNum(mins.Physics)
+    };
   }, [entries]);
 
-  // 6. Chapter-wise studied hours list (Top 5 studied)
+  // 6. Chapter-wise studied hours list (Top 5 studied, accumulating minutes)
   const topChapters = useMemo(() => {
     const chapMap = new Map<string, number>();
     entries.forEach(e => {
       const currentVal = chapMap.get(e.chapter) || 0;
-      chapMap.set(e.chapter, currentVal + e.durationMinutes / 60);
+      chapMap.set(e.chapter, currentVal + e.durationMinutes);
     });
 
     return Array.from(chapMap.entries())
-      .map(([chapter, hours]) => {
+      .map(([chapter, minutes]) => {
         // Find subject for color coding
         const found = chapterStatuses.find(c => c.chapterName === chapter);
         return {
           chapter,
-          hours,
+          minutes,
+          hours: formatMinutesToDecimalHoursNum(minutes),
           subject: found?.subject || getChapterSubject(chapter)
         };
       })
-      .sort((a, b) => b.hours - a.hours)
+      .sort((a, b) => b.minutes - a.minutes)
       .slice(0, 5);
   }, [entries, chapterStatuses]);
 
   return (
     <div id="dashboard-section" className="space-y-6 animate-fade-in">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-medical-800 via-medical-900 to-medical-950 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-gradient-to-r from-medical-800 via-medical-900 to-medical-950 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="space-y-2 z-10 max-w-lg">
           <div className="flex items-center gap-1.5 text-medical-200 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-medical-300" /> NEET Preparation Console
@@ -134,23 +191,14 @@ export default function Dashboard({
           <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
             Welcome back, Aspirant.
           </h1>
-          <p className="text-xs text-medical-200 leading-relaxed">
-            Your spaced-repetition metrics are active. Record finished classes or mock drills to keep your memory retention calendar perfectly adapted.
-          </p>
-        </div>
-
-        {/* Current Streak Indicator (Glowing Fire Widget) */}
-        <div className="bg-white/10 backdrop-blur-xs border border-white/15 px-5 py-4 rounded-xl flex items-center gap-4 shrink-0 min-w-[200px] z-10">
-          <div className="p-2.5 bg-amber-500 rounded-lg text-white shadow shadow-amber-500/50">
-            <Flame className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-medical-200 uppercase tracking-wider block">Active Streak</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-mono font-extrabold text-white">{streaks.currentStreak}</span>
-              <span className="text-xs text-medical-300">days</span>
+          <div className="mt-3 bg-white/10 backdrop-blur-md border border-white/15 rounded-xl px-4 py-3 flex items-start gap-3 shadow-inner">
+            <Quote className="w-5 h-5 text-amber-300 shrink-0 mt-0.5 opacity-80" />
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black text-amber-200 uppercase tracking-wider block">Daily Motivation</span>
+              <p className="text-xs text-slate-100 italic font-semibold leading-relaxed">
+                "{dailyThought}"
+              </p>
             </div>
-            <span className="text-[9px] text-medical-200 block mt-0.5">Longest: {streaks.longestStreak} days</span>
           </div>
         </div>
       </div>
@@ -225,16 +273,16 @@ export default function Dashboard({
         id="todays-focus-card"
         className={`rounded-2xl p-4 md:p-5 border transition-all duration-300 ${
           focusData.isImbalance 
-            ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/40 border-amber-200/60' 
-            : 'bg-gradient-to-r from-emerald-50/50 to-teal-50/30 border-emerald-100/60'
+            ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/40 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200/60 dark:border-amber-900/40' 
+            : 'bg-gradient-to-r from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 border-emerald-100/60 dark:border-emerald-900/40'
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="flex items-start gap-3 min-w-0">
             <div className={`p-2 rounded-xl mt-0.5 shrink-0 shadow-sm ${
               focusData.isImbalance 
-                ? 'bg-amber-100/80 text-amber-700' 
-                : 'bg-emerald-100/80 text-emerald-700'
+                ? 'bg-amber-100/80 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400' 
+                : 'bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
             }`}>
               {focusData.isImbalance ? (
                 <Target className="w-4.5 h-4.5 animate-pulse" />
@@ -244,7 +292,7 @@ export default function Dashboard({
             </div>
             <div className="space-y-1 min-w-0">
               <span className={`text-[10px] uppercase tracking-widest font-extrabold ${
-                focusData.isImbalance ? 'text-amber-800' : 'text-emerald-800'
+                focusData.isImbalance ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-800 dark:text-emerald-400'
               }`}>
                 {focusData.isImbalance ? "Today's Focus Recommendation" : "Weekly Balance Status"}
               </span>
@@ -258,8 +306,8 @@ export default function Dashboard({
             onClick={() => onNavigateToTab('today-focus')}
             className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
               focusData.isImbalance
-                ? 'bg-white hover:bg-amber-50 text-amber-700 border-amber-200/50 shadow-sm'
-                : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100/50 shadow-sm'
+                ? 'bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-900/40 shadow-sm'
+                : 'bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/40 shadow-sm'
             }`}
           >
             <Activity className="w-3.5 h-3.5" /> Analyze Balance <ArrowRight className="w-3.5 h-3.5" />
@@ -276,13 +324,13 @@ export default function Dashboard({
             <div className="space-y-2 min-w-0 flex-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study Load</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-mono font-extrabold text-slate-800">{todayMetrics.studyHrs.toFixed(1)}</span>
+                <span className="text-3xl font-mono font-extrabold text-slate-800">{formatMinutesToDecimalHours(todayMetrics.studyMins)}</span>
                 <span className="text-xs text-slate-500 font-semibold">hours total</span>
               </div>
               <p className="text-[10px] text-slate-500 leading-normal">
-                {todayMetrics.studyHrs === 0 
+                {todayMetrics.studyMins === 0 
                   ? "No study logs today yet. Start a session or log your classes!"
-                  : todayMetrics.studyHrs < 3
+                  : todayMetrics.studyHrsNum < 3
                     ? "Great start! Keep pushing to reach your daily NEET goal."
                     : "Outstanding study momentum today! Balance is key."
                 }
@@ -301,10 +349,10 @@ export default function Dashboard({
                   stroke="#f1f5f9"
                   strokeWidth="9"
                 />
-                {todayMetrics.studyHrs > 0 ? (
+                {todayMetrics.studyMins > 0 ? (
                   <>
                     {/* Class segment */}
-                    {todayMetrics.classHrs > 0 && (
+                    {todayMetrics.classMins > 0 && (
                       <motion.circle
                         cx="50"
                         cy="50"
@@ -312,7 +360,7 @@ export default function Dashboard({
                         fill="transparent"
                         stroke="#3b82f6"
                         strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
+                        strokeDasharray={`${(todayMetrics.classMins / todayMetrics.studyMins) * 226.195} 226.195`}
                         strokeDashoffset={0}
                         strokeLinecap="round"
                         initial={{ strokeDashoffset: 226.195 }}
@@ -321,7 +369,7 @@ export default function Dashboard({
                       />
                     )}
                     {/* Self Study segment */}
-                    {todayMetrics.selfHrs > 0 && (
+                    {todayMetrics.selfMins > 0 && (
                       <motion.circle
                         cx="50"
                         cy="50"
@@ -329,16 +377,16 @@ export default function Dashboard({
                         fill="transparent"
                         stroke="#10b981"
                         strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.selfHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
-                        strokeDashoffset={-(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195}
+                        strokeDasharray={`${(todayMetrics.selfMins / todayMetrics.studyMins) * 226.195} 226.195`}
+                        strokeDashoffset={-(todayMetrics.classMins / todayMetrics.studyMins) * 226.195}
                         strokeLinecap="round"
                         initial={{ strokeDashoffset: 226.195 }}
-                        animate={{ strokeDashoffset: -(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195 }}
+                        animate={{ strokeDashoffset: -(todayMetrics.classMins / todayMetrics.studyMins) * 226.195 }}
                         transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
                       />
                     )}
                     {/* Revision segment */}
-                    {todayMetrics.revHrs > 0 && (
+                    {todayMetrics.revMins > 0 && (
                       <motion.circle
                         cx="50"
                         cy="50"
@@ -346,11 +394,11 @@ export default function Dashboard({
                         fill="transparent"
                         stroke="#f59e0b"
                         strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.revHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
-                        strokeDashoffset={-((todayMetrics.classHrs + todayMetrics.selfHrs) / todayMetrics.studyHrs) * 226.195}
+                        strokeDasharray={`${(todayMetrics.revMins / todayMetrics.studyMins) * 226.195} 226.195`}
+                        strokeDashoffset={-((todayMetrics.classMins + todayMetrics.selfMins) / todayMetrics.studyMins) * 226.195}
                         strokeLinecap="round"
                         initial={{ strokeDashoffset: 226.195 }}
-                        animate={{ strokeDashoffset: -((todayMetrics.classHrs + todayMetrics.selfHrs) / todayMetrics.studyHrs) * 226.195 }}
+                        animate={{ strokeDashoffset: -((todayMetrics.classMins + todayMetrics.selfMins) / todayMetrics.studyMins) * 226.195 }}
                         transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
                       />
                     )}
@@ -369,7 +417,7 @@ export default function Dashboard({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-sm font-black font-mono text-slate-800 leading-none">
-                  {todayMetrics.studyHrs > 0 ? `${Math.round((todayMetrics.studyHrs / 8) * 100)}%` : '0%'}
+                  {todayMetrics.studyMins > 0 ? `${Math.round((todayMetrics.studyMins / (8 * 60)) * 100)}%` : '0%'}
                 </span>
                 <span className="text-[7px] text-slate-400 font-extrabold uppercase mt-0.5">Target</span>
               </div>
@@ -381,21 +429,21 @@ export default function Dashboard({
               <span className="w-2.5 h-2.5 rounded bg-blue-500 shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Class</span>
-                <span className="font-bold text-slate-700 font-mono">{todayMetrics.classHrs.toFixed(1)}h</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.classMins)}h</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded bg-emerald-500 shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Self Study</span>
-                <span className="font-bold text-slate-700 font-mono">{todayMetrics.selfHrs.toFixed(1)}h</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.selfMins)}h</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded bg-amber-500 shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Revision</span>
-                <span className="font-bold text-slate-700 font-mono">{todayMetrics.revHrs.toFixed(1)}h</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.revMins)}h</span>
               </div>
             </div>
           </div>
@@ -408,15 +456,15 @@ export default function Dashboard({
             <div className="space-y-3.5">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">This Week:</span>
-                <span className="font-mono font-bold text-slate-800">{periodicStats.weekHrs.toFixed(1)} hrs</span>
+                <span className="font-mono font-bold text-slate-800">{periodicStats.weekHrsStr} hrs</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">This Month:</span>
-                <span className="font-mono font-bold text-slate-800">{periodicStats.monthHrs.toFixed(1)} hrs</span>
+                <span className="font-mono font-bold text-slate-800">{periodicStats.monthHrsStr} hrs</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Lifetime Prep:</span>
-                <span className="font-mono font-bold text-slate-800">{periodicStats.lifetimeHrs.toFixed(1)} hrs</span>
+                <span className="font-mono font-bold text-slate-800">{periodicStats.lifetimeHrsStr} hrs</span>
               </div>
             </div>
           </div>
@@ -431,12 +479,12 @@ export default function Dashboard({
             <div>
               <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
                 <span className="flex items-center gap-1.5 text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Biology</span>
-                <span className="font-mono">{subjectHrs.Biology.toFixed(1)}h</span>
+                <span className="font-mono">{subjectHrs.Biology}h</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5">
                 <div
                   className="bg-emerald-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrs > 0 ? (subjectHrs.Biology / periodicStats.lifetimeHrs) * 100 : 0}%` }}
+                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Biology / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -445,12 +493,12 @@ export default function Dashboard({
             <div>
               <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
                 <span className="flex items-center gap-1.5 text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" /> Chemistry</span>
-                <span className="font-mono">{subjectHrs.Chemistry.toFixed(1)}h</span>
+                <span className="font-mono">{subjectHrs.Chemistry}h</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5">
                 <div
                   className="bg-red-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrs > 0 ? (subjectHrs.Chemistry / periodicStats.lifetimeHrs) * 100 : 0}%` }}
+                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Chemistry / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -459,12 +507,12 @@ export default function Dashboard({
             <div>
               <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
                 <span className="flex items-center gap-1.5 text-blue-700"><span className="w-2 h-2 rounded-full bg-blue-500" /> Physics</span>
-                <span className="font-mono">{subjectHrs.Physics.toFixed(1)}h</span>
+                <span className="font-mono">{subjectHrs.Physics}h</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5">
                 <div
                   className="bg-blue-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrs > 0 ? (subjectHrs.Physics / periodicStats.lifetimeHrs) * 100 : 0}%` }}
+                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Physics / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -495,7 +543,7 @@ export default function Dashboard({
                       </span>
                     </div>
                     <span className="font-mono font-bold text-slate-800 bg-slate-50 border border-slate-150 px-2 py-0.5 rounded text-[11px] shrink-0">
-                      {item.hours.toFixed(1)} hours
+                      {item.hours} hours
                     </span>
                   </div>
                 );

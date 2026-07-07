@@ -18,7 +18,13 @@ import {
   X, 
   AlertTriangle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Atom,
+  FlaskConical,
+  Dna,
+  Zap,
+  Droplet,
+  Leaf
 } from 'lucide-react';
 import { StudyEntry, NEETSubject, StudyType, ConfidenceLevel } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
@@ -33,6 +39,77 @@ interface StudyEntryProps {
 
 export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onEditEntry }: StudyEntryProps) {
   // --- ADD FORM STATE ---
+  const [burstParticles, setBurstParticles] = useState<{
+    id: number;
+    icon: string;
+    startX: number;
+    startY: number;
+    x: number;
+    y: number;
+    rotate: number;
+    scale: number;
+    colorClass: string;
+  }[]>([]);
+
+  const renderSubjectIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'Atom': return <Atom className="w-5 h-5" />;
+      case 'Zap': return <Zap className="w-4 h-4" />;
+      case 'FlaskConical': return <FlaskConical className="w-5 h-5" />;
+      case 'Droplet': return <Droplet className="w-4 h-4" />;
+      case 'Dna': return <Dna className="w-5 h-5" />;
+      case 'Leaf': return <Leaf className="w-4 h-4" />;
+      default: return <BookOpen className="w-4 h-4" />;
+    }
+  };
+
+  const triggerSubjectBurst = (subj: NEETSubject, target: HTMLButtonElement) => {
+    const startX = target.offsetLeft + target.offsetWidth / 2;
+    const startY = target.offsetTop + target.offsetHeight / 2;
+
+    const iconsMap = {
+      Physics: ['Atom', 'Zap', 'Atom', 'Zap'],
+      Chemistry: ['FlaskConical', 'Droplet', 'FlaskConical', 'Droplet'],
+      Biology: ['Dna', 'Leaf', 'Dna', 'Leaf']
+    };
+
+    const colorsMap = {
+      Physics: 'text-blue-500 dark:text-blue-400',
+      Chemistry: 'text-red-500 dark:text-red-400',
+      Biology: 'text-emerald-500 dark:text-emerald-400'
+    };
+
+    const pool = iconsMap[subj];
+    const colorClass = colorsMap[subj];
+
+    const newParticles = Array.from({ length: 12 }).map((_, i) => {
+      const angle = (i * (360 / 12)) + (Math.random() * 15 - 7.5);
+      const rad = (angle * Math.PI) / 180;
+      const velocity = 50 + Math.random() * 60;
+      const destX = Math.cos(rad) * velocity;
+      const destY = Math.sin(rad) * velocity;
+
+      return {
+        id: Math.random() + Date.now() + i,
+        icon: pool[Math.floor(Math.random() * pool.length)],
+        startX,
+        startY,
+        x: destX,
+        y: destY,
+        rotate: Math.random() * 360 - 180,
+        scale: 0.6 + Math.random() * 0.8,
+        colorClass
+      };
+    });
+
+    setBurstParticles(prev => [...prev, ...newParticles]);
+
+    // Cleanup
+    setTimeout(() => {
+      setBurstParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 900);
+  };
+
   const [date, setDate] = useState<string>(() => getLogicalTodayDate());
   const [startTime, setStartTime] = useState<string>('14:00');
   const [endTime, setEndTime] = useState<string>('16:00');
@@ -339,35 +416,58 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Subject</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                   {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                     const isSelected = subject === subj;
                     let selectedStyles = '';
                     if (subj === 'Chemistry') {
-                      selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100';
+                      selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900';
                     } else if (subj === 'Physics') {
-                      selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100';
+                      selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900';
                     } else {
-                      selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100';
+                      selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900';
                     }
                     return (
                       <button
                         key={subj}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
                           setSubject(subj);
                           setChapterQuery('');
+                          triggerSubjectBurst(subj, e.currentTarget);
                         }}
-                        className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
+                        className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
                           isSelected
                             ? selectedStyles
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-slate-100'
                         }`}
                       >
                         {subj}
                       </button>
                     );
                   })}
+
+                  {/* Render burst particles */}
+                  <AnimatePresence>
+                    {burstParticles.map((particle) => (
+                      <motion.div
+                        key={particle.id}
+                        initial={{ opacity: 1, scale: 0.2, x: particle.startX - 10, y: particle.startY - 10, rotate: 0 }}
+                        animate={{ 
+                          opacity: 0, 
+                          scale: particle.scale, 
+                          x: particle.startX + particle.x - 10, 
+                          y: particle.startY + particle.y - 10, 
+                          rotate: particle.rotate 
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className={`absolute pointer-events-none z-50 ${particle.colorClass} drop-shadow-md`}
+                      >
+                        {renderSubjectIcon(particle.icon)}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -838,35 +938,58 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Subject</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                       {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                         const isSelected = editSubject === subj;
                         let selectedStyles = '';
                         if (subj === 'Chemistry') {
-                          selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100';
+                          selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900';
                         } else if (subj === 'Physics') {
-                          selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100';
+                          selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900';
                         } else {
-                          selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100';
+                          selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900';
                         }
                         return (
                           <button
                             key={`edit-${subj}`}
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
                               setEditSubject(subj);
                               setEditChapterQuery('');
+                              triggerSubjectBurst(subj, e.currentTarget);
                             }}
-                            className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
+                            className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
                               isSelected
                                 ? selectedStyles
-                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-slate-100'
                             }`}
                           >
                             {subj}
                           </button>
                         );
                       })}
+
+                      {/* Render burst particles for edit form */}
+                      <AnimatePresence>
+                        {burstParticles.map((particle) => (
+                          <motion.div
+                            key={`edit-particle-${particle.id}`}
+                            initial={{ opacity: 1, scale: 0.2, x: particle.startX - 10, y: particle.startY - 10, rotate: 0 }}
+                            animate={{ 
+                              opacity: 0, 
+                              scale: particle.scale, 
+                              x: particle.startX + particle.x - 10, 
+                              y: particle.startY + particle.y - 10, 
+                              rotate: particle.rotate 
+                            }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className={`absolute pointer-events-none z-50 ${particle.colorClass} drop-shadow-md`}
+                          >
+                            {renderSubjectIcon(particle.icon)}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   </div>
 

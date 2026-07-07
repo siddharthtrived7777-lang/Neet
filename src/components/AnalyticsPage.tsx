@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { BarChart2, Flame, Target, BookOpen, AlertCircle, TrendingUp, Sparkles, PieChart, Activity, Calendar } from 'lucide-react';
 import { StudyEntry, ChapterStatus, NEETSubject } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
-import { formatDate, daysBetween, addDays } from '../utils';
+import { formatDate, daysBetween, addDays, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum } from '../utils';
 
 interface AnalyticsPageProps {
   entries: StudyEntry[];
@@ -24,78 +24,87 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
 
   const todayStr = useMemo(() => formatDate(new Date()), []);
 
-  // 1. Time-bucket Hours (Today, Week, Month, Lifetime)
+  // 1. Time-bucket Hours (Today, Week, Month, Lifetime) (accumulating minutes)
   const stats = useMemo(() => {
-    let todayHrs = 0;
-    let todayClassHrs = 0;
-    let todaySelfHrs = 0;
-    let todayRevHrs = 0;
+    let todayMins = 0;
+    let todayClassMins = 0;
+    let todaySelfMins = 0;
+    let todayRevMins = 0;
     let todayMcqs = 0;
     let todayCorrect = 0;
 
-    let weekHrs = 0;
-    let monthHrs = 0;
-    let lifetimeHrs = 0;
+    let weekMins = 0;
+    let monthMins = 0;
+    let lifetimeMins = 0;
 
     const oneWeekAgo = addDays(todayStr, -7);
     const oneMonthAgo = addDays(todayStr, -30);
 
     entries.forEach(e => {
-      const hrs = e.durationMinutes / 60;
-      lifetimeHrs += hrs;
+      lifetimeMins += e.durationMinutes;
 
       if (e.date === todayStr) {
-        todayHrs += hrs;
-        if (e.studyType === 'Class') todayClassHrs += hrs;
-        else if (e.studyType === 'Self Study') todaySelfHrs += hrs;
-        else if (e.studyType === 'Revision') todayRevHrs += hrs;
+        todayMins += e.durationMinutes;
+        if (e.studyType === 'Class') todayClassMins += e.durationMinutes;
+        else if (e.studyType === 'Self Study') todaySelfMins += e.durationMinutes;
+        else if (e.studyType === 'Revision') todayRevMins += e.durationMinutes;
 
         todayMcqs += e.mcqsSolved;
         todayCorrect += e.mcqsCorrect;
       }
 
-      if (e.date >= oneWeekAgo) weekHrs += hrs;
-      if (e.date >= oneMonthAgo) monthHrs += hrs;
+      if (e.date >= oneWeekAgo) weekMins += e.durationMinutes;
+      if (e.date >= oneMonthAgo) monthMins += e.durationMinutes;
     });
 
     const todayAccuracy = todayMcqs > 0 ? Math.round((todayCorrect / todayMcqs) * 100) : 0;
 
     return {
-      todayHrs,
-      todayClassHrs,
-      todaySelfHrs,
-      todayRevHrs,
+      todayMins,
+      todayClassMins,
+      todaySelfMins,
+      todayRevMins,
       todayMcqs,
       todayAccuracy,
-      weekHrs,
-      monthHrs,
-      lifetimeHrs
+      weekMins,
+      monthMins,
+      lifetimeMins,
+      todayHrsStr: formatMinutesToDecimalHours(todayMins),
+      todayClassHrsStr: formatMinutesToDecimalHours(todayClassMins),
+      todaySelfHrsStr: formatMinutesToDecimalHours(todaySelfMins),
+      todayRevHrsStr: formatMinutesToDecimalHours(todayRevMins),
+      weekHrsStr: formatMinutesToDecimalHours(weekMins),
+      monthHrsStr: formatMinutesToDecimalHours(monthMins),
+      lifetimeHrsStr: formatMinutesToDecimalHours(lifetimeMins)
     };
   }, [entries, todayStr]);
 
-  // 2. Subject Breakdown
+  // 2. Subject Breakdown (accumulating minutes)
   const subjectBreakdown = useMemo(() => {
-    let biologyHrs = 0;
-    let chemistryHrs = 0;
-    let physicsHrs = 0;
+    let biologyMins = 0;
+    let chemistryMins = 0;
+    let physicsMins = 0;
 
     entries.forEach(e => {
-      const hrs = e.durationMinutes / 60;
-      if (e.subject === 'Biology') biologyHrs += hrs;
-      else if (e.subject === 'Chemistry') chemistryHrs += hrs;
-      else if (e.subject === 'Physics') physicsHrs += hrs;
+      if (e.subject === 'Biology') biologyMins += e.durationMinutes;
+      else if (e.subject === 'Chemistry') chemistryMins += e.durationMinutes;
+      else if (e.subject === 'Physics') physicsMins += e.durationMinutes;
     });
 
-    const total = biologyHrs + chemistryHrs + physicsHrs;
+    const total = biologyMins + chemistryMins + physicsMins;
     if (total === 0) {
-      return { Biology: 33, Chemistry: 33, Physics: 34, raw: { Biology: 0, Chemistry: 0, Physics: 0 } };
+      return { Biology: 33, Chemistry: 33, Physics: 34, raw: { Biology: '0', Chemistry: '0', Physics: '0' } };
     }
 
     return {
-      Biology: Math.round((biologyHrs / total) * 100),
-      Chemistry: Math.round((chemistryHrs / total) * 100),
-      Physics: Math.round((physicsHrs / total) * 100),
-      raw: { Biology: biologyHrs, Chemistry: chemistryHrs, Physics: physicsHrs }
+      Biology: Math.round((biologyMins / total) * 100),
+      Chemistry: Math.round((chemistryMins / total) * 100),
+      Physics: Math.round((physicsMins / total) * 100),
+      raw: {
+        Biology: formatMinutesToDecimalHours(biologyMins),
+        Chemistry: formatMinutesToDecimalHours(chemistryMins),
+        Physics: formatMinutesToDecimalHours(physicsMins)
+      }
     };
   }, [entries]);
 
@@ -251,11 +260,11 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.todayHrs.toFixed(1)}</span>
+            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.todayHrsStr}</span>
             <span className="text-xs text-slate-500">hours</span>
           </div>
           <p className="text-[10px] text-slate-500">
-            Class: {stats.todayClassHrs.toFixed(1)}h • Self: {stats.todaySelfHrs.toFixed(1)}h
+            Class: {stats.todayClassHrsStr}h • Self: {stats.todaySelfHrsStr}h
           </p>
         </div>
 
@@ -274,7 +283,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Weekly Hours</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.weekHrs.toFixed(1)}</span>
+            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.weekHrsStr}</span>
             <span className="text-xs text-slate-500">hours</span>
           </div>
           <p className="text-[10px] text-slate-500">Targeting 45h/week standard</p>
@@ -284,7 +293,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Syllabus Hours</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.lifetimeHrs.toFixed(1)}</span>
+            <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.lifetimeHrsStr}</span>
             <span className="text-xs text-slate-500">hours</span>
           </div>
           <p className="text-[10px] text-slate-500">Cumulated NEET Preparation logs</p>
@@ -313,10 +322,10 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
               </defs>
 
               {/* Gridlines */}
-              <line x1="25" y1="25" x2="475" y2="25" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-              <line x1="25" y1="67" x2="475" y2="67" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-              <line x1="25" y1="110" x2="475" y2="110" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-              <line x1="25" y1="135" x2="475" y2="135" stroke="#cbd5e1" strokeWidth="1" />
+              <line x1="25" y1="25" x2="475" y2="25" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3 3" />
+              <line x1="25" y1="67" x2="475" y2="67" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3 3" />
+              <line x1="25" y1="110" x2="475" y2="110" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3 3" />
+              <line x1="25" y1="135" x2="475" y2="135" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1" />
 
               {/* Shaded Area */}
               {areaChartSvgPath.areaPath && (
@@ -389,7 +398,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                 <span className="text-emerald-700 font-bold flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Biology
                 </span>
-                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Biology.toFixed(1)}h logged</span>
+                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Biology}h logged</span>
               </div>
               <span className="font-mono font-bold text-slate-800 text-sm bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
                 {subjectBreakdown.Biology}%
@@ -402,7 +411,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                 <span className="text-red-700 font-bold flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Chemistry
                 </span>
-                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Chemistry.toFixed(1)}h logged</span>
+                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Chemistry}h logged</span>
               </div>
               <span className="font-mono font-bold text-slate-800 text-sm bg-red-50 border border-red-100 px-2 py-0.5 rounded">
                 {subjectBreakdown.Chemistry}%
@@ -415,7 +424,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                 <span className="text-blue-700 font-bold flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Physics
                 </span>
-                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Physics.toFixed(1)}h logged</span>
+                <span className="text-[10px] text-slate-400 block font-mono">{subjectBreakdown.raw.Physics}h logged</span>
               </div>
               <span className="font-mono font-bold text-slate-800 text-sm bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
                 {subjectBreakdown.Physics}%
@@ -523,7 +532,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                   <div key={c.chapterName} className="p-3 bg-slate-50 rounded-xl border border-slate-150 flex justify-between items-center text-xs">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-800 leading-tight block truncate max-w-[170px]">{c.chapterName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{c.subject} • {c.totalHours.toFixed(1)}h logged</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{c.subject} • {formatMinutesToDecimalHours(Math.round(c.totalHours * 60))}h logged</span>
                     </div>
                     <span className="font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
                       {Math.round(c.averageAccuracy)}%
@@ -550,7 +559,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                   <div key={c.chapterName} className="p-3 bg-slate-50 rounded-xl border border-slate-150 flex justify-between items-center text-xs">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-800 leading-tight block truncate max-w-[170px]">{c.chapterName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{c.subject} • {c.totalHours.toFixed(1)}h logged</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{c.subject} • {formatMinutesToDecimalHours(Math.round(c.totalHours * 60))}h logged</span>
                     </div>
                     <span className="font-mono font-bold text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
                       {Math.round(c.averageAccuracy)}%

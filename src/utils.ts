@@ -72,6 +72,29 @@ export function calculateDuration(startTime: string, endTime: string): number {
   return endMin - startMin;
 }
 
+/**
+ * Converts total minutes into a formatted decimal hour string, where the decimal part
+ * represents the actual minutes.
+ * Examples:
+ * - 80 minutes (1 hour 20 minutes) -> "1.2"
+ * - 90 minutes (1 hour 30 minutes) -> "1.3"
+ * - 65 minutes (1 hour 5 minutes) -> "1.05"
+ * - 60 minutes (1 hour 0 minutes) -> "1"
+ * - 15 minutes (0 hours 15 minutes) -> "0.15"
+ */
+export function formatMinutesToDecimalHours(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (m === 0) return `${h}`;
+  const mStr = m < 10 ? `0${m}` : `${m}`;
+  const decimalPart = mStr.endsWith('0') ? mStr.slice(0, -1) : mStr;
+  return `${h}.${decimalPart}`;
+}
+
+export function formatMinutesToDecimalHoursNum(minutes: number): number {
+  return Number(formatMinutesToDecimalHours(minutes));
+}
+
 // STREAK CALCULATOR
 export function calculateStreaks(entries: StudyEntry[]): { currentStreak: number; longestStreak: number } {
   if (entries.length === 0) return { currentStreak: 0, longestStreak: 0 };
@@ -436,7 +459,7 @@ export function generateAiInsights(
       id: 'welcome-insight',
       type: 'info',
       title: 'Study Planner Initialized',
-      message: 'Log your completed study sessions and mock test results. Aura AI will dynamically compute your spaced repetition intervals and highlight weak concepts here.'
+      message: 'Log your completed study sessions and mock test results. We will dynamically compute your spaced repetition intervals and highlight weak concepts here.'
     });
   }
 

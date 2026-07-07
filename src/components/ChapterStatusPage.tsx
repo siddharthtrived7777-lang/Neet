@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { Search, Filter, BookOpen, Layers, CheckCircle2, RefreshCw, BarChart2, Star, Eye } from 'lucide-react';
 import { ChapterStatus, NEETSubject, ChapterStatusType } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
+import { formatMinutesToDecimalHours } from '../utils';
 
 interface ChapterStatusPageProps {
   chapterStatuses: ChapterStatus[];
@@ -239,7 +240,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
 
                       {/* Study Hours */}
                       <td className="px-4 py-4 text-center font-mono font-medium text-slate-700">
-                        {chap.totalHours > 0 ? `${chap.totalHours.toFixed(1)}h` : '—'}
+                        {chap.totalHours > 0 ? `${formatMinutesToDecimalHours(Math.round(chap.totalHours * 60))}h` : '—'}
                       </td>
 
                       {/* MCQs */}

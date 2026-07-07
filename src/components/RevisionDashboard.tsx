@@ -188,7 +188,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
           <Award className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold block">Excellent accuracy (≥95%)</span>
-            <p className="text-emerald-700/80 mt-0.5">Aura automatically delays subsequent revision sessions to optimize study balance.</p>
+            <p className="text-emerald-700/80 mt-0.5">The system automatically delays subsequent revision sessions to optimize study balance.</p>
           </div>
         </div>
 

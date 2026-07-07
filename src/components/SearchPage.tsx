@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { Search, Info, HelpCircle, Calendar, Sparkles, Clock, Target, AlertTriangle } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
+import { formatMinutesToDecimalHours } from '../utils';
 
 interface SearchPageProps {
   entries: StudyEntry[];
@@ -53,8 +54,8 @@ export default function SearchPage({
     // Fetch revisions of this chapter
     const chapRevisions = revisions.filter(r => r.chapterName === name);
 
-    // Calculate total hours
-    const totalHrs = chapEntries.reduce((acc, curr) => acc + curr.durationMinutes / 60, 0);
+    // Calculate total minutes
+    const totalMinutes = chapEntries.reduce((acc, curr) => acc + curr.durationMinutes, 0);
 
     // Calculate MCQs
     const totalSolved = chapEntries.reduce((acc, curr) => acc + curr.mcqsSolved, 0);
@@ -76,7 +77,7 @@ export default function SearchPage({
       unit: exactSyllabus.unit,
       status: statusObj?.status || 'Not Started',
       nextRevisionDate: statusObj?.nextRevisionDate || null,
-      totalHours: totalHrs,
+      totalMinutes,
       totalMcqs: totalSolved,
       avgAccuracy,
       entriesCount: chapEntries.length,
@@ -191,7 +192,7 @@ export default function SearchPage({
                 <div className="bg-slate-50/50 border border-slate-150 p-4 rounded-xl text-center space-y-1">
                   <Clock className="w-4 h-4 text-slate-400 mx-auto" />
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide block">Total Study</span>
-                  <span className="font-mono font-bold text-slate-800 text-sm">{selectedChapterDetails.totalHours.toFixed(1)}h</span>
+                  <span className="font-mono font-bold text-slate-800 text-sm">{formatMinutesToDecimalHours(selectedChapterDetails.totalMinutes)}h</span>
                 </div>
 
                 <div className="bg-slate-50/50 border border-slate-150 p-4 rounded-xl text-center space-y-1">

@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", "Inter", sans-serif;
@@ -53,5 +55,159 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ==========================================
+   HIGH-POLISHED DARK MODE SYSTEM OVERRIDES
+   ========================================== */
+.dark body {
+  background-color: #030712 !important; /* slate-950 */
+  color: #f8fafc !important; /* slate-50 */
+}
+
+/* Base Card Overrides */
+.dark .bg-white {
+  background-color: #0f172a !important; /* slate-900 */
+}
+
+.dark .bg-slate-50 {
+  background-color: #030712 !important; /* slate-950 */
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important; /* slate-800 */
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+/* Border color overrides */
+.dark .border-slate-100,
+.dark .border-slate-150,
+.dark .border-slate-200,
+.dark .border-slate-200\/40,
+.dark .border-slate-200\/60,
+.dark .border-slate-200\/80 {
+  border-color: #1e293b !important; /* slate-800 */
+}
+
+.dark .divide-slate-100 > * + *,
+.dark .divide-slate-200 > * + * {
+  border-color: #1e293b !important;
+}
+
+/* Text elements */
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: #f8fafc !important; /* slate-50 */
+}
+
+.dark .text-slate-700 {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+.dark .text-slate-600 {
+  color: #cbd5e1 !important; /* slate-300 */
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+.dark .text-slate-400 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+/* Input, Textarea, and Select Dark styling */
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+}
+
+.dark input:focus, 
+.dark select:focus, 
+.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  background-color: #0f172a !important;
+}
+
+.dark select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Styled Tags */
+.dark .bg-indigo-50 {
+  background-color: #1e1b4b !important; /* indigo-950 */
+}
+.dark .text-indigo-600,
+.dark .text-indigo-700,
+.dark .text-indigo-800 {
+  color: #a5b4fc !important; /* indigo-300 */
+}
+
+.dark .bg-emerald-50 {
+  background-color: #022c22 !important; /* emerald-950 */
+}
+.dark .text-emerald-600,
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #34d399 !important; /* emerald-400 */
+}
+
+.dark .bg-amber-50 {
+  background-color: #451a03 !important; /* amber-950 */
+}
+.dark .text-amber-600,
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #fbbf24 !important; /* amber-400 */
+}
+
+.dark .bg-red-50,
+.dark .bg-rose-50 {
+  background-color: #450a0a !important; /* red-950 */
+}
+.dark .text-red-600,
+.dark .text-red-700,
+.dark .text-red-800,
+.dark .text-rose-600,
+.dark .text-rose-700,
+.dark .text-rose-800 {
+  color: #f87171 !important; /* red-400 */
+}
+
+.dark .bg-blue-50 {
+  background-color: #172554 !important; /* blue-950 */
+}
+.dark .text-blue-600,
+.dark .text-blue-700,
+.dark .text-blue-800 {
+  color: #60a5fa !important; /* blue-400 */
+}
+
+/* Chart and Graphic adjustments */
+.dark .bg-slate-50\/40 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
 }
 
