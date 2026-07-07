@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType, PriorityLevel } from './types';
+import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType, PriorityLevel, StudyType, ConfidenceLevel } from './types';
 import { NEET_SYLLABUS, getChapterSubject } from './neetData';
 
 // Generate unique IDs
@@ -24,6 +24,27 @@ export function addDays(dateStr: string, days: number): string {
   const date = new Date(dateStr);
   date.setDate(date.getDate() + days);
   return formatDate(date);
+}
+
+// Get the logical date today based on 6:00 AM boundary
+export function getLogicalTodayDate(): string {
+  const now = new Date();
+  const hours = now.getHours();
+  if (hours < 6) {
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return formatDate(yesterday);
+  }
+  return formatDate(now);
+}
+
+// Map any date and start time to the correct logical study date (e.g. before 6 AM is previous day)
+export function getLogicalDateForSession(dateStr: string, startTime: string): string {
+  if (!startTime) return dateStr;
+  const [startH] = startTime.split(':').map(Number);
+  if (startH < 6) {
+    return addDays(dateStr, -1);
+  }
+  return dateStr;
 }
 
 // Difference in days between two dates
@@ -62,8 +83,8 @@ export function calculateStreaks(entries: StudyEntry[]): { currentStreak: number
   let longestStreak = 0;
   let tempStreak = 0;
   
-  const todayStr = formatDate(new Date());
-  const yesterdayStr = formatDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const todayStr = getLogicalTodayDate();
+  const yesterdayStr = addDays(todayStr, -1);
   
   // Check if study date array includes today or yesterday to see if current streak is active
   const hasStudiedRecently = uniqueDates.includes(todayStr) || uniqueDates.includes(yesterdayStr);
@@ -158,7 +179,7 @@ export function adaptFutureRevisions(
   forgotten: boolean = false
 ): RevisionTask[] {
   const updatedRevisions = [...revisions];
-  const todayStr = formatDate(new Date());
+  const todayStr = getLogicalTodayDate();
 
   if (forgotten) {
     // If user marks "I forgot":
@@ -235,7 +256,7 @@ export function determineChapterStatusFromRevisions(
   const completedCount = chapterRevs.filter(r => r.completed).length;
 
   if (completedCount === 0) {
-    return baseStatus === 'Not Started' ? 'Studying' : baseStatus;
+    return baseStatus;
   } else if (completedCount === 1) {
     return 'Revision 1';
   } else if (completedCount === 2) {
@@ -248,6 +269,15 @@ export function determineChapterStatusFromRevisions(
     return 'Mastered';
   }
   return 'Completed';
+}
+
+// Get the latest study entry date for a chapter
+export function getLatestDateForChapter(chapterName: string, currentEntries: StudyEntry[]): string | null {
+  const chapterEntries = currentEntries.filter(e => e.chapter === chapterName);
+  if (chapterEntries.length === 0) return null;
+  return chapterEntries.reduce((latest, current) => {
+    return new Date(current.date) > new Date(latest) ? current.date : latest;
+  }, chapterEntries[0].date);
 }
 
 // AI INSIGHTS GENERATOR (Analytical Rule-based Engine)
@@ -267,7 +297,7 @@ export function generateAiInsights(
   revisions: RevisionTask[]
 ): AiInsight[] {
   const insights: AiInsight[] = [];
-  const todayStr = formatDate(new Date());
+  const todayStr = getLogicalTodayDate();
 
   // 1. Check for Overdue Revisions
   const overdueCount = revisions.filter(r => !r.completed && r.dueDate < todayStr).length;
@@ -454,5 +484,20 @@ export function triggerToast(message: string, type: 'success' | 'error' | 'info'
       console.log(`[Toast Fallback] ${type.toUpperCase()}: ${message}`);
     }
   }
+}
+
+export interface RawStudyEntry {
+  date: string;
+  startTime: string;
+  endTime: string;
+  subject: NEETSubject;
+  chapter: string;
+  topic: string;
+  studyType: StudyType;
+  mcqsSolved: number;
+  mcqsCorrect: number;
+  mcqsWrong: number;
+  confidenceLevel: ConfidenceLevel;
+  notes: string;
 }
 

@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { Award, Target, BookOpen, AlertCircle, PlusCircle, CheckCircle, Trash2, HelpCircle } from 'lucide-react';
 import { TestEntry, NEETSubject } from '../types';
 import { NEET_SYLLABUS } from '../neetData';
-import { formatDate, triggerToast } from '../utils';
+import { formatDate, triggerToast, getLogicalTodayDate } from '../utils';
 
 interface TestTrackerPageProps {
   tests: TestEntry[];
@@ -27,7 +27,7 @@ export default function TestTrackerPage({
   const [testName, setTestName] = useState<string>('');
   const [marks, setMarks] = useState<number>(580);
   const [outOf, setOutOf] = useState<number>(720);
-  const [date, setDate] = useState<string>(() => formatDate(new Date()));
+  const [date, setDate] = useState<string>(() => getLogicalTodayDate());
   const [subjectFocus, setSubjectFocus] = useState<NEETSubject>('Biology');
   const [tempWrongChapter, setTempWrongChapter] = useState<string>('');
   const [wrongChapters, setWrongChapters] = useState<string[]>([]);

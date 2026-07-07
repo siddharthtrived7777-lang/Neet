@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { Flame, Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
-import { formatDate, addDays, calculateStreaks } from '../utils';
+import { formatDate, addDays, calculateStreaks, getLogicalTodayDate } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
 
 interface DashboardProps {
@@ -28,7 +28,7 @@ export default function Dashboard({
   onNavigateToTab,
   onQuickCompleteRevision
 }: DashboardProps) {
-  const todayStr = useMemo(() => formatDate(new Date()), []);
+  const todayStr = useMemo(() => getLogicalTodayDate(), []);
 
   // 1. Compute Streaks
   const streaks = useMemo(() => {

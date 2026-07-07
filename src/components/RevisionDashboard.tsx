@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen, Trash2 } from 'lucide-react';
 import { RevisionTask, NEETSubject, PriorityLevel } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
-import { formatDate, addDays, daysBetween } from '../utils';
+import { formatDate, addDays, daysBetween, getLogicalTodayDate } from '../utils';
 
 interface RevisionDashboardProps {
   revisions: RevisionTask[];
@@ -27,7 +27,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
   const [revMcqsSolved, setRevMcqsSolved] = useState<number>(30);
   const [revNotes, setRevNotes] = useState<string>('');
 
-  const todayStr = useMemo(() => formatDate(new Date()), []);
+  const todayStr = useMemo(() => getLogicalTodayDate(), []);
   const tomorrowStr = useMemo(() => addDays(todayStr, 1), [todayStr]);
 
   // Interval Analysis (1, 3, 5, 7, 14, 21, 30 days based)

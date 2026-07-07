@@ -33,6 +33,10 @@ import {
   createRevisionSchedule,
   adaptFutureRevisions,
   determineChapterStatusFromRevisions,
+  getLatestDateForChapter,
+  getLogicalTodayDate,
+  getLogicalDateForSession,
+  calculateDuration,
   formatDate,
   generateId,
   addDays,
@@ -330,21 +334,23 @@ export default function App() {
   // 1. ADD STUDY ENTRY & MANAGE SPACED REPETITION
   const handleAddEntry = (newEntryData: Omit<StudyEntry, 'id' | 'accuracy' | 'durationMinutes'>) => {
     const id = generateId();
-    const duration = Math.max(
-      15,
-      Math.floor((new Date(`${newEntryData.date}T${newEntryData.endTime}`).getTime() - 
-                  new Date(`${newEntryData.date}T${newEntryData.startTime}`).getTime()) / (1000 * 60))
-    );
+    const logicalDate = getLogicalDateForSession(newEntryData.date, newEntryData.startTime);
+    const duration = calculateDuration(newEntryData.startTime, newEntryData.endTime);
     const accuracy = newEntryData.mcqsSolved > 0 
       ? Math.round((newEntryData.mcqsCorrect / newEntryData.mcqsSolved) * 100) 
       : 0;
 
     const entry: StudyEntry = {
       ...newEntryData,
+      date: logicalDate,
       id,
       durationMinutes: isNaN(duration) ? 120 : duration,
       accuracy
     };
+
+    if (logicalDate !== newEntryData.date) {
+      triggerToast(`Session logged on ${logicalDate} (Logical day ends at 6:00 AM).`, 'info');
+    }
 
     const updatedEntries = [...entries, entry];
     saveEntries(updatedEntries);
@@ -452,7 +458,7 @@ export default function App() {
     if (!oldEntry) return;
 
     // A. Rollback old stats from chapterStatuses
-    let rolledBackStatuses = chapterStatuses.map(chap => {
+    const rolledBackStatuses = chapterStatuses.map(chap => {
       if (chap.chapterName === oldEntry.chapter) {
         const remainingHrs = Math.max(0, chap.totalHours - (oldEntry.durationMinutes / 60));
         const remainingMcqs = Math.max(0, chap.totalMcqs - oldEntry.mcqsSolved);
@@ -482,21 +488,23 @@ export default function App() {
       return chap;
     });
 
-    // B. Compute new duration, accuracy, and create the full updated entry
-    const duration = Math.max(
-      15,
-      Math.floor((new Date(`${updatedEntryData.date}T${updatedEntryData.endTime}`).getTime() - 
-                  new Date(`${updatedEntryData.date}T${updatedEntryData.startTime}`).getTime()) / (1000 * 60))
-    );
+    // B. Map date for the new updated entry using the logical day logic
+    const logicalDate = getLogicalDateForSession(updatedEntryData.date, updatedEntryData.startTime);
+    const duration = calculateDuration(updatedEntryData.startTime, updatedEntryData.endTime);
     const accuracy = updatedEntryData.mcqsSolved > 0 
       ? Math.round((updatedEntryData.mcqsCorrect / updatedEntryData.mcqsSolved) * 100) 
       : 0;
 
     const entry: StudyEntry = {
       ...updatedEntryData,
+      date: logicalDate,
       durationMinutes: isNaN(duration) ? 120 : duration,
       accuracy
     };
+
+    if (logicalDate !== updatedEntryData.date) {
+      triggerToast(`Session logged on ${logicalDate} (Logical day ends at 6:00 AM).`, 'info');
+    }
 
     // C. Update the entries array
     const updatedEntries = entries.map(e => e.id === id ? entry : e);
@@ -577,11 +585,12 @@ export default function App() {
         const currentTrends = [...chap.confidenceTrend, entry.confidenceLevel].slice(-5);
         const nextRevTask = updatedRevs.find(r => r.chapterName === entry.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, chap.status);
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, currentHours > 0 ? 'Studying' : 'Not Started');
+        const latestDate = getLatestDateForChapter(entry.chapter, updatedEntries);
 
         return {
           ...chap,
-          lastStudiedDate: entry.date,
+          lastStudiedDate: latestDate,
           status: mappedStatus,
           nextRevisionDate: nextRevDate,
           totalHours: Number(currentHours.toFixed(2)),
@@ -593,10 +602,12 @@ export default function App() {
         // Also update old chapter's revisions mapping & status
         const nextRevTask = updatedRevs.find(r => r.chapterName === oldEntry.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, oldEntry.chapter, chap.status);
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, oldEntry.chapter, chap.totalHours > 0 ? 'Studying' : 'Not Started');
+        const latestDate = getLatestDateForChapter(oldEntry.chapter, updatedEntries);
 
         return {
           ...chap,
+          lastStudiedDate: latestDate,
           status: mappedStatus,
           nextRevisionDate: nextRevDate
         };
@@ -675,11 +686,13 @@ export default function App() {
         const nextRevTask = updatedRevs.find(r => r.chapterName === toDelete.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
         const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, toDelete.chapter, remainingHrs > 0 ? 'Studying' : 'Not Started');
+        const latestDate = getLatestDateForChapter(toDelete.chapter, filtered);
 
         return {
           ...chap,
           status: mappedStatus,
           nextRevisionDate: nextRevDate,
+          lastStudiedDate: latestDate,
           totalHours: Number(remainingHrs.toFixed(2)),
           totalMcqs: remainingMcqs,
           averageAccuracy: Number(newAvg.toFixed(2)),

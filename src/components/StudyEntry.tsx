@@ -16,11 +16,13 @@ import {
   Trash2, 
   Pencil, 
   X, 
-  AlertTriangle 
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { StudyEntry, NEETSubject, StudyType, ConfidenceLevel } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
-import { calculateDuration, formatDate, triggerToast } from '../utils';
+import { calculateDuration, formatDate, triggerToast, getLogicalTodayDate } from '../utils';
 
 interface StudyEntryProps {
   onAddEntry: (entry: Omit<StudyEntry, 'id' | 'accuracy' | 'durationMinutes'>) => void;
@@ -31,7 +33,7 @@ interface StudyEntryProps {
 
 export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onEditEntry }: StudyEntryProps) {
   // --- ADD FORM STATE ---
-  const [date, setDate] = useState<string>(() => formatDate(new Date()));
+  const [date, setDate] = useState<string>(() => getLogicalTodayDate());
   const [startTime, setStartTime] = useState<string>('14:00');
   const [endTime, setEndTime] = useState<string>('16:00');
   const [subject, setSubject] = useState<NEETSubject>('Biology');
@@ -69,6 +71,47 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
 
   // --- NOTIFICATION / SUCCESS BANNERS ---
   const [notification, setNotification] = useState<string | null>(null);
+
+  // --- EXPAND/COLLAPSE GROUPED ENTRIES BY DATE ---
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+
+  const groupedEntries = useMemo(() => {
+    const groups: Record<string, StudyEntry[]> = {};
+    
+    // Sort entries descending by date & time
+    const sorted = [...entries].sort((a, b) => {
+      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      return b.startTime.localeCompare(a.startTime);
+    });
+    
+    sorted.forEach(entry => {
+      if (!groups[entry.date]) {
+        groups[entry.date] = [];
+      }
+      groups[entry.date].push(entry);
+    });
+    return groups;
+  }, [entries]);
+
+  const sortedDates = useMemo(() => {
+    return Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [groupedEntries]);
+
+  const isDateExpanded = (dateStr: string) => {
+    if (expandedDates[dateStr] !== undefined) {
+      return expandedDates[dateStr];
+    }
+    // Default to true for the most recent date, false for older dates
+    return dateStr === sortedDates[0];
+  };
+
+  const toggleDateExpanded = (dateStr: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [dateStr]: !isDateExpanded(dateStr)
+    }));
+  };
 
   // --- SYLLABUS FILTERS FOR ADD FORM ---
   const filteredSyllabusChapters = useMemo(() => {
@@ -595,95 +638,166 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <p className="text-[11px] text-slate-400 mt-1 max-w-[240px]">Record your completed classes, mock tests, or question sets using the manual entry form.</p>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1 pr-1 space-y-3">
-                {[...entries]
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((entry) => {
-                    const clr = SUBJECT_COLORS[entry.subject] || SUBJECT_COLORS.Biology;
-                    return (
-                      <div
-                        key={entry.id}
-                        className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60 flex flex-col gap-2 transition-all hover:bg-white hover:border-slate-300 hover:shadow-sm"
+              <div className="overflow-y-auto flex-1 pr-1 space-y-4">
+                {sortedDates.map((dateStr) => {
+                  const dayEntries = groupedEntries[dateStr];
+                  const isExpanded = isDateExpanded(dateStr);
+                  
+                  // Compute day stats
+                  const totalMins = dayEntries.reduce((sum, e) => sum + e.durationMinutes, 0);
+                  const totalHoursFormatted = totalMins >= 60 
+                    ? `${Math.floor(totalMins / 60)}h ${totalMins % 60}m` 
+                    : `${totalMins}m`;
+                  const totalSolved = dayEntries.reduce((sum, e) => sum + e.mcqsSolved, 0);
+
+                  // Friendly date title
+                  let friendlyDate = dateStr;
+                  const todayStr = getLogicalTodayDate();
+                  if (dateStr === todayStr) {
+                    friendlyDate = `${dateStr} (Today)`;
+                  } else {
+                    // Try to see if it's yesterday
+                    try {
+                      const todayObj = new Date(todayStr);
+                      todayObj.setDate(todayObj.getDate() - 1);
+                      const yesterdayStr = todayObj.toISOString().split('T')[0];
+                      if (dateStr === yesterdayStr) {
+                        friendlyDate = `${dateStr} (Yesterday)`;
+                      }
+                    } catch (e) {}
+                  }
+
+                  return (
+                    <div key={dateStr} className="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-xs">
+                      {/* Date Header button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleDateExpanded(dateStr)}
+                        className="w-full text-left px-3.5 py-3 bg-slate-50 hover:bg-slate-100/80 active:bg-slate-100 transition-all flex items-center justify-between border-b border-slate-100"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${clr.bg} ${clr.text}`}>
-                                {entry.subject}
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-400 font-medium">{entry.date}</span>
-                            </div>
-                            <h3 className="text-xs font-bold text-slate-800 leading-tight mt-1">{entry.chapter}</h3>
-                            {entry.topic && (
-                              <p className="text-[10px] text-slate-500 font-medium italic">Topic: {entry.topic}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500 hover:text-slate-800 transition-colors">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
                             )}
-                          </div>
-                          
-                          {/* Modern Action Buttons: Edit and Delete */}
-                          <div className="flex gap-1 shrink-0">
-                            <button
-                              onClick={() => handleOpenEditModal(entry)}
-                              className="text-slate-400 hover:text-blue-600 p-1 rounded-lg hover:bg-blue-50 transition-all cursor-pointer border border-transparent hover:border-blue-100"
-                              title="Edit entry"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenDeleteModal(entry.id, entry.chapter)}
-                              className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border border-transparent hover:border-rose-100"
-                              title="Delete entry"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          </span>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-800 tracking-tight">{friendlyDate}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[9px] font-semibold font-mono text-slate-400 bg-slate-200/50 px-1.5 py-0.2 rounded">
+                                {dayEntries.length} {dayEntries.length === 1 ? 'Session' : 'Sessions'}
+                              </span>
+                              {totalSolved > 0 && (
+                                <span className="text-[9px] font-semibold font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-100/50">
+                                  {totalSolved} MCQs
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 border-t border-slate-200/40 pt-2 text-[10px] text-slate-500">
-                          <div>
-                            <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Duration</span>
-                            <span className="font-semibold text-slate-700 font-mono">
-                              {entry.durationMinutes >= 60
-                                ? `${Math.floor(entry.durationMinutes / 60)}h ${entry.durationMinutes % 60}m`
-                                : `${entry.durationMinutes}m`}
-                            </span>
-                          </div>
-
-                          <div>
-                            <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Type</span>
-                            <span className="font-semibold text-slate-700 truncate block max-w-full">{entry.studyType}</span>
-                          </div>
-
-                          <div>
-                            <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Confidence</span>
-                            <span className={`font-semibold ${
-                              entry.confidenceLevel === 'High'
-                                ? 'text-emerald-600'
-                                : entry.confidenceLevel === 'Medium'
-                                ? 'text-blue-600'
-                                : 'text-rose-500'
-                            }`}>
-                              {entry.confidenceLevel}
-                            </span>
-                          </div>
+                        <div className="text-right flex flex-col items-end shrink-0">
+                          <span className="text-xs font-bold text-medical-800 font-mono">{totalHoursFormatted}</span>
+                          <span className="text-[8px] font-medium uppercase tracking-wider text-slate-400 mt-0.5">Studied</span>
                         </div>
+                      </button>
 
-                        {entry.mcqsSolved > 0 && (
-                          <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-100 flex items-center justify-between text-[10px]">
-                            <span className="text-slate-400 font-medium">MCQs: <strong className="text-slate-700">{entry.mcqsCorrect}/{entry.mcqsSolved}</strong></span>
-                            <span className={`font-mono font-bold ${
-                              entry.accuracy >= 90 ? 'text-emerald-600' : entry.accuracy >= 75 ? 'text-teal-600' : 'text-amber-600'
-                            }`}>{entry.accuracy}% Accuracy</span>
-                          </div>
-                        )}
+                      {/* Date Entries collapsible area */}
+                      {isExpanded && (
+                        <div className="p-3 bg-slate-50/40 divide-y divide-slate-100 space-y-3">
+                          {dayEntries.map((entry) => {
+                            const clr = SUBJECT_COLORS[entry.subject] || SUBJECT_COLORS.Biology;
+                            return (
+                              <div
+                                key={entry.id}
+                                className="pt-3 first:pt-0 flex flex-col gap-2"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${clr.bg} ${clr.text}`}>
+                                        {entry.subject}
+                                      </span>
+                                      <span className="text-[9px] font-mono text-slate-400 font-semibold">{entry.startTime} - {entry.endTime}</span>
+                                    </div>
+                                    <h3 className="text-xs font-bold text-slate-800 leading-tight mt-1">{entry.chapter}</h3>
+                                    {entry.topic && (
+                                      <p className="text-[10px] text-slate-500 font-medium italic">Topic: {entry.topic}</p>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Modern Action Buttons: Edit and Delete */}
+                                  <div className="flex gap-1 shrink-0">
+                                    <button
+                                      onClick={() => handleOpenEditModal(entry)}
+                                      className="text-slate-400 hover:text-blue-600 p-1 rounded-lg hover:bg-blue-50 transition-all cursor-pointer border border-transparent hover:border-blue-100"
+                                      title="Edit entry"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenDeleteModal(entry.id, entry.chapter)}
+                                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border border-transparent hover:border-rose-100"
+                                      title="Delete entry"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
 
-                        {entry.notes && (
-                          <div className="text-[10px] text-slate-400 line-clamp-2 bg-white/60 p-1.5 rounded border border-dashed border-slate-200/50">
-                            {entry.notes}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                                <div className="grid grid-cols-3 gap-2 border-t border-slate-200/40 pt-2 text-[10px] text-slate-500">
+                                  <div>
+                                    <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Duration</span>
+                                    <span className="font-semibold text-slate-700 font-mono">
+                                      {entry.durationMinutes >= 60
+                                        ? `${Math.floor(entry.durationMinutes / 60)}h ${entry.durationMinutes % 60}m`
+                                        : `${entry.durationMinutes}m`}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Type</span>
+                                    <span className="font-semibold text-slate-700 truncate block max-w-full">{entry.studyType}</span>
+                                  </div>
+
+                                  <div>
+                                    <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Confidence</span>
+                                    <span className={`font-semibold ${
+                                      entry.confidenceLevel === 'High'
+                                        ? 'text-emerald-600'
+                                        : entry.confidenceLevel === 'Medium'
+                                        ? 'text-blue-600'
+                                        : 'text-rose-500'
+                                    }`}>
+                                      {entry.confidenceLevel}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {entry.mcqsSolved > 0 && (
+                                  <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-100 flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-400 font-medium">MCQs: <strong className="text-slate-700">{entry.mcqsCorrect}/{entry.mcqsSolved}</strong></span>
+                                    <span className={`font-mono font-bold ${
+                                      entry.accuracy >= 90 ? 'text-emerald-600' : entry.accuracy >= 75 ? 'text-teal-600' : 'text-amber-600'
+                                    }`}>{entry.accuracy}% Accuracy</span>
+                                  </div>
+                                )}
+
+                                {entry.notes && (
+                                  <div className="text-[10px] text-slate-400 line-clamp-2 bg-white/60 p-1.5 rounded border border-dashed border-slate-200/50">
+                                    {entry.notes}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
