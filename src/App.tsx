@@ -18,7 +18,12 @@ import {
   Upload,
   Menu,
   X,
-  FileText
+  FileText,
+  Cloud,
+  CloudOff,
+  LogOut,
+  RefreshCw,
+  Target
 } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType } from './types';
 import {
@@ -28,8 +33,28 @@ import {
   determineChapterStatusFromRevisions,
   formatDate,
   generateId,
-  addDays
+  addDays,
+  daysBetween
 } from './utils';
+
+// Firebase imports
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { auth } from './firebase';
+import {
+  testFirebaseConnection,
+  fetchUserData,
+  syncLocalDataToCloud,
+  saveStudyEntryCloud,
+  deleteStudyEntryCloud,
+  saveTestEntryCloud,
+  deleteTestEntryCloud,
+  saveChapterStatusCloud,
+  saveRevisionTaskCloud,
+  saveExamDateCloud,
+  fetchExamDateCloud
+} from './firebaseService';
+import AuthModal from './components/AuthModal';
+import ExamCountdownModal from './components/ExamCountdownModal';
 
 // Component imports
 import Dashboard from './components/Dashboard';
@@ -40,6 +65,7 @@ import AnalyticsPage from './components/AnalyticsPage';
 import TestTrackerPage from './components/TestTrackerPage';
 import SearchPage from './components/SearchPage';
 import AiInsightsPanel from './components/AiInsightsPanel';
+import TodayFocusPage from './components/TodayFocusPage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -53,8 +79,19 @@ export default function App() {
   const [chapterStatuses, setChapterStatuses] = useState<ChapterStatus[]>([]);
   const [revisions, setRevisions] = useState<RevisionTask[]>([]);
 
-  // Load from Local Storage on mount
+  // Exam Countdown States
+  const [examDate, setExamDate] = useState<string | null>(() => localStorage.getItem('neet_exam_date'));
+  const [isExamModalOpen, setIsExamModalOpen] = useState<boolean>(false);
+
+  // Firebase state
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [syncing, setSyncing] = useState<boolean>(false);
+
+  // Load from Local Storage on mount and start Firebase connection test
   useEffect(() => {
+    testFirebaseConnection();
+
     const localEntries = localStorage.getItem('neet_study_entries');
     const localTests = localStorage.getItem('neet_tests');
     const localChapterStatuses = localStorage.getItem('neet_chapter_statuses');
@@ -63,9 +100,19 @@ export default function App() {
     // We force a hard reset to apply the user's request of "Reset days and hours I will add everything once website is ready"
     const hasReset = localStorage.getItem('neet_has_reset_v3') === 'true';
 
+    let initialEntries: StudyEntry[] = [];
+    let initialTests: TestEntry[] = [];
+    let initialStatuses: ChapterStatus[] = [];
+    let initialRevisions: RevisionTask[] = [];
+
     if (!hasReset) {
       // Seed data on first launch (which is now clean/empty)
       const seed = getSeedData();
+      initialEntries = seed.entries;
+      initialTests = seed.tests;
+      initialStatuses = seed.chapterStatuses;
+      initialRevisions = seed.revisions;
+
       setEntries(seed.entries);
       setTests(seed.tests);
       setChapterStatuses(seed.chapterStatuses);
@@ -78,11 +125,79 @@ export default function App() {
       localStorage.setItem('neet_has_visited', 'true');
       localStorage.setItem('neet_has_reset_v3', 'true');
     } else {
-      if (localEntries) setEntries(JSON.parse(localEntries));
-      if (localTests) setTests(JSON.parse(localTests));
-      if (localChapterStatuses) setChapterStatuses(JSON.parse(localChapterStatuses));
-      if (localRevisions) setRevisions(JSON.parse(localRevisions));
+      if (localEntries) {
+        initialEntries = JSON.parse(localEntries);
+        setEntries(initialEntries);
+      }
+      if (localTests) {
+        initialTests = JSON.parse(localTests);
+        setTests(initialTests);
+      }
+      if (localChapterStatuses) {
+        initialStatuses = JSON.parse(localChapterStatuses);
+        setChapterStatuses(initialStatuses);
+      }
+      if (localRevisions) {
+        initialRevisions = JSON.parse(localRevisions);
+        setRevisions(initialRevisions);
+      }
     }
+
+    // Set up Auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setSyncing(true);
+        try {
+          // Fetch existing database progress from cloud
+          const cloudData = await fetchUserData(currentUser.uid);
+          
+          if (
+            cloudData.entries.length > 0 || 
+            cloudData.tests.length > 0 || 
+            cloudData.revisions.length > 0
+          ) {
+            // Cloud has existing data, update client states and offline fallback
+            setEntries(cloudData.entries);
+            setTests(cloudData.tests);
+            setChapterStatuses(cloudData.chapterStatuses);
+            setRevisions(cloudData.revisions);
+
+            localStorage.setItem('neet_study_entries', JSON.stringify(cloudData.entries));
+            localStorage.setItem('neet_tests', JSON.stringify(cloudData.tests));
+            localStorage.setItem('neet_chapter_statuses', JSON.stringify(cloudData.chapterStatuses));
+            localStorage.setItem('neet_revisions', JSON.stringify(cloudData.revisions));
+          } else {
+            // Cloud is empty, sync current local state up to Firestore
+            // Read from state or local variables to get latest loaded items
+            await syncLocalDataToCloud(currentUser.uid, {
+              entries: initialEntries,
+              tests: initialTests,
+              chapterStatuses: initialStatuses,
+              revisions: initialRevisions
+            });
+          }
+
+          // Sync exam date if authenticated
+          const cloudExamDate = await fetchExamDateCloud(currentUser.uid);
+          if (cloudExamDate) {
+            setExamDate(cloudExamDate);
+            localStorage.setItem('neet_exam_date', cloudExamDate);
+          } else {
+            const localExamDate = localStorage.getItem('neet_exam_date');
+            if (localExamDate) {
+              await saveExamDateCloud(currentUser.uid, localExamDate);
+            }
+          }
+        } catch (error) {
+          console.error("Cloud synchronisation failed:", error);
+        } finally {
+          setSyncing(false);
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Save to Local Storage helpers
@@ -104,6 +219,19 @@ export default function App() {
   const saveRevisions = (updated: RevisionTask[]) => {
     setRevisions(updated);
     localStorage.setItem('neet_revisions', JSON.stringify(updated));
+  };
+
+  const handleSaveExamDate = async (date: string | null) => {
+    setExamDate(date);
+    if (date) {
+      localStorage.setItem('neet_exam_date', date);
+    } else {
+      localStorage.removeItem('neet_exam_date');
+    }
+
+    if (auth.currentUser) {
+      await saveExamDateCloud(auth.currentUser.uid, date);
+    }
   };
 
   // 1. ADD STUDY ENTRY & MANAGE SPACED REPETITION
@@ -194,6 +322,19 @@ export default function App() {
 
     saveChapterStatuses(finalStatuses);
     saveRevisions(updatedRevs);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      saveStudyEntryCloud(uid, entry);
+      const affectedStatus = finalStatuses.find(chap => chap.chapterName === entry.chapter);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+      updatedRevs.forEach(rev => {
+        if (rev.chapterName === entry.chapter) {
+          saveRevisionTaskCloud(uid, rev);
+        }
+      });
+    }
   };
 
   // 2. DELETE ENTRY
@@ -224,6 +365,14 @@ export default function App() {
       return chap;
     });
     saveChapterStatuses(updatedStatuses);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      deleteStudyEntryCloud(uid, id);
+      const affectedStatus = updatedStatuses.find(chap => chap.chapterName === toDelete.chapter);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+    }
   };
 
   // 3. COMPLETE REVISION TASK
@@ -304,6 +453,19 @@ export default function App() {
     });
 
     saveChapterStatuses(updatedStatuses);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      saveStudyEntryCloud(uid, simulatedEntry);
+      adaptedRevs.forEach(rev => {
+        if (rev.chapterName === completedTask.chapterName) {
+          saveRevisionTaskCloud(uid, rev);
+        }
+      });
+      const affectedStatus = updatedStatuses.find(chap => chap.chapterName === completedTask.chapterName);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+    }
   };
 
   // 4. QUICK COMPLETE REVISION FROM TODAY'S TASKS LIST ON DASHBOARD
@@ -334,6 +496,18 @@ export default function App() {
     });
     saveChapterStatuses(updatedStatuses);
 
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      updatedRevs.forEach(rev => {
+        if (rev.chapterName === task.chapterName) {
+          saveRevisionTaskCloud(uid, rev);
+        }
+      });
+      const affectedStatus = updatedStatuses.find(chap => chap.chapterName === task.chapterName);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+    }
+
     alert(`Refresher for "${task.chapterName}" scheduled for tomorrow. High priority set!`);
   };
 
@@ -350,11 +524,21 @@ export default function App() {
     };
 
     saveTests([...tests, test]);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      saveTestEntryCloud(auth.currentUser.uid, test);
+    }
   };
 
   // 7. DELETE MOCK SCORE
   const handleDeleteTest = (id: string) => {
     saveTests(tests.filter(t => t.id !== id));
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      deleteTestEntryCloud(auth.currentUser.uid, id);
+    }
   };
 
   // 8. URGENT RECOMMENDATION REVISION INJECTOR
@@ -396,6 +580,18 @@ export default function App() {
     });
 
     saveChapterStatuses(updatedStatuses);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      updatedRevs.forEach(rev => {
+        if (rev.chapterName === chapterName) {
+          saveRevisionTaskCloud(uid, rev);
+        }
+      });
+      const affectedStatus = updatedStatuses.find(chap => chap.chapterName === chapterName);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+    }
   };
 
   // 9. IMPORT / EXPORT BACKUPS
@@ -429,6 +625,12 @@ export default function App() {
           saveTests(parsed.tests);
           saveChapterStatuses(parsed.chapterStatuses);
           saveRevisions(parsed.revisions);
+
+          // Sync to Firebase if authenticated
+          if (auth.currentUser) {
+            syncLocalDataToCloud(auth.currentUser.uid, parsed);
+          }
+
           alert('Backup database imported successfully! Dashboard values synchronized.');
         } else {
           alert('Malformed backup JSON file. Ensure you import a valid NEET planner export.');
@@ -447,12 +649,79 @@ export default function App() {
     saveChapterStatuses(seed.chapterStatuses);
     saveRevisions(seed.revisions);
     setShowResetConfirm(false);
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      syncLocalDataToCloud(auth.currentUser.uid, seed);
+    }
   };
 
   // Nav to chapter search page and set query
   const handleSelectChapterForDeepView = (chapterName: string) => {
     setSearchInitialChapter(chapterName);
     setActiveTab('search');
+  };
+
+  const todayStr = formatDate(new Date());
+  const formattedToday = new Date().toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const getExamCountdown = (isMobile: boolean = false) => {
+    if (!examDate) {
+      if (isMobile) return null;
+      return (
+        <button
+          onClick={() => setIsExamModalOpen(true)}
+          className="text-xs text-medical-600 hover:text-medical-700 font-bold underline transition-colors focus:outline-none cursor-pointer ml-1.5"
+        >
+          Set exam date
+        </button>
+      );
+    }
+
+    const diffDays = daysBetween(todayStr, examDate);
+
+    if (diffDays === 0) {
+      return (
+        <button
+          onClick={() => setIsExamModalOpen(true)}
+          className="text-xs font-black text-amber-600 hover:text-amber-700 hover:underline transition-all focus:outline-none cursor-pointer ml-1.5 animate-pulse"
+          title="Click to edit/clear exam date"
+        >
+          • Exam day! 🎉
+        </button>
+      );
+    }
+
+    if (diffDays < 0) {
+      return null;
+    }
+
+    if (isMobile) {
+      return (
+        <button
+          onClick={() => setIsExamModalOpen(true)}
+          className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold focus:outline-none cursor-pointer hover:bg-amber-500/30 transition-all shadow-sm"
+          title="Click to edit/clear exam date"
+        >
+          {diffDays}d left
+        </button>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => setIsExamModalOpen(true)}
+        className="text-xs font-extrabold text-amber-600 hover:text-amber-700 hover:underline transition-all focus:outline-none cursor-pointer ml-1.5"
+        title="Click to edit/clear exam date"
+      >
+        • {diffDays} {diffDays === 1 ? 'day' : 'days'} to exam
+      </button>
+    );
   };
 
   return (
@@ -462,14 +731,17 @@ export default function App() {
       <header className="md:hidden bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shadow-md sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <BookOpen className="w-5.5 h-5.5 text-medical-200" />
-          <span className="font-display font-black text-sm tracking-wide">NEET STUDY PLANNED</span>
+          <span className="font-display font-black text-sm tracking-wide">NEET STUDY PLANNER</span>
         </div>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-1 text-slate-200 hover:text-white"
-        >
-          {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-3">
+          {getExamCountdown(true)}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1 text-slate-200 hover:text-white"
+          >
+            {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </header>
 
       {/* Main Sidebar (Desktop sidebar / mobile drawer drawer) */}
@@ -506,7 +778,8 @@ export default function App() {
               { id: 'analytics', label: 'Analytics', icon: BarChart2 },
               { id: 'mock-tests', label: 'Mock Scorecard', icon: Award },
               { id: 'search', label: 'Search Chapter', icon: Search },
-              { id: 'ai-coach', label: 'Aura AI Coach', icon: Sparkles }
+              { id: 'ai-coach', label: 'Aura AI Coach', icon: Sparkles },
+              { id: 'today-focus', label: "Today's Focus", icon: Target }
             ].map(item => {
               const IconComp = item.icon;
               return (
@@ -585,15 +858,81 @@ export default function App() {
             )}
           </div>
 
-          <div className="text-[9px] text-slate-500 text-center flex flex-col items-center">
-            <span className="block font-mono">Offline Local Storage Active</span>
-            <span className="block text-slate-600 mt-1">Made for NEET Aspirants</span>
+          {/* Cloud Sync Integration Segment */}
+          <div className="space-y-1.5 border-t border-slate-800 pt-2.5">
+            <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-500 block">Cloud database sync</span>
+            {user ? (
+              <div className="bg-slate-800/60 rounded-lg p-2.5 border border-slate-700/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-[10px] text-slate-300 font-bold block overflow-hidden text-ellipsis whitespace-nowrap max-w-[130px]" title={user.email || ''}>
+                    {user.email}
+                  </span>
+                </div>
+                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1.5">
+                  {syncing ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-medical-400" />
+                      <span>Syncing progress...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tablet & Mobile synced</span>
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={async () => {
+                    await signOut(auth);
+                    alert("Signed out successfully. Returning to offline local storage mode.");
+                  }}
+                  className="w-full text-center text-[9px] font-bold mt-2.5 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-300 rounded transition-all cursor-pointer flex items-center justify-center gap-1 border border-slate-800"
+                >
+                  <LogOut className="w-3 h-3" /> Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="bg-slate-800/40 rounded-lg p-2.5 border border-slate-800/40 flex flex-col items-center">
+                <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-semibold mb-2">
+                  <CloudOff className="w-3.5 h-3.5" />
+                  <span>Offline Mode Active</span>
+                </div>
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="w-full text-center text-[10px] font-extrabold py-2 bg-medical-600 hover:bg-medical-500 text-white rounded-lg transition-all cursor-pointer shadow-sm shadow-medical-600/10 flex items-center justify-center gap-1"
+                >
+                  <Cloud className="w-3.5 h-3.5" /> Enable Cloud Sync
+                </button>
+                <span className="text-[8px] text-slate-500 mt-1.5 block text-center leading-normal">
+                  Syncs your NEET progress for free across devices!
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </aside>
 
       {/* Main app content stage */}
       <main className="flex-1 p-5 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+        {/* Global Page Header & Countdown */}
+        <div id="global-page-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/60 pb-4 mb-6 gap-3">
+          <div>
+            <span className="text-[10px] font-bold text-medical-600 uppercase tracking-widest block">NEET STUDY PLANNER</span>
+            <h1 className="text-xl md:text-2xl font-display font-extrabold text-slate-800 capitalize tracking-tight">
+              {activeTab === 'dashboard' ? 'Overview Dashboard' : activeTab.replace('-', ' ')}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white border border-slate-200/40 rounded-xl px-3.5 py-2 shadow-sm text-xs text-slate-600 shrink-0">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="font-semibold text-slate-700">{formattedToday}</span>
+              {getExamCountdown()}
+            </div>
+          </div>
+        </div>
+
         {activeTab === 'dashboard' && (
           <Dashboard
             entries={entries}
@@ -661,8 +1000,33 @@ export default function App() {
             revisions={revisions}
           />
         )}
+
+        {activeTab === 'today-focus' && (
+          <TodayFocusPage
+            entries={entries}
+            chapterStatuses={chapterStatuses}
+            revisions={revisions}
+            onNavigateToTab={(tab) => setActiveTab(tab)}
+            onSetSearchQuery={(query) => setSearchInitialChapter(query)}
+          />
+        )}
       </main>
 
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onAuthSuccess={(uid) => {
+          // Sync automatically handled by onAuthStateChanged!
+          alert("Successfully connected to cloud database! Your progress is now synced across your tablet and mobile devices.");
+        }}
+      />
+
+      <ExamCountdownModal
+        isOpen={isExamModalOpen}
+        onClose={() => setIsExamModalOpen(false)}
+        currentDate={examDate}
+        onSave={handleSaveExamDate}
+      />
     </div>
   );
 }

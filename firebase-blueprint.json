@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "StudyEntry": {
+      "title": "StudyEntry",
+      "description": "A single logged study session containing duration, subject, chapter, and MCQ details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "subject": { "type": "string" },
+        "chapter": { "type": "string" },
+        "topic": { "type": "string" },
+        "studyType": { "type": "string" },
+        "mcqsSolved": { "type": "number" },
+        "mcqsCorrect": { "type": "number" },
+        "mcqsWrong": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "confidenceLevel": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "date", "startTime", "endTime", "durationMinutes", "subject", "chapter", "topic", "studyType"]
+    },
+    "TestEntry": {
+      "title": "TestEntry",
+      "description": "A NEET mock test or chapter test entry with scores",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "testName": { "type": "string" },
+        "testType": { "type": "string" },
+        "subject": { "type": "string" },
+        "totalMarks": { "type": "number" },
+        "marksObtained": { "type": "number" },
+        "physicsScore": { "type": "number" },
+        "chemistryScore": { "type": "number" },
+        "biologyScore": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "difficulty": { "type": "string" },
+        "timeSpentMinutes": { "type": "number" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "date", "testName", "testType", "totalMarks", "marksObtained"]
+    },
+    "ChapterStatus": {
+      "title": "ChapterStatus",
+      "description": "The completion and study progress status for a specific NEET chapter",
+      "type": "object",
+      "properties": {
+        "chapterName": { "type": "string" },
+        "subject": { "type": "string" },
+        "unit": { "type": "string" },
+        "status": { "type": "string" },
+        "totalHours": { "type": "number" },
+        "totalMcqs": { "type": "number" },
+        "averageAccuracy": { "type": "number" },
+        "lastStudiedDate": { "type": "string" },
+        "nextRevisionDate": { "type": "string" },
+        "confidenceTrend": { "type": "array" }
+      },
+      "required": ["chapterName", "subject", "unit", "status", "totalHours", "totalMcqs", "averageAccuracy"]
+    },
+    "RevisionTask": {
+      "title": "RevisionTask",
+      "description": "A spaced repetition revision task scheduled automatically",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chapterName": { "type": "string" },
+        "subject": { "type": "string" },
+        "stage": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "completedDate": { "type": "string" },
+        "accuracyAtRevision": { "type": "number" }
+      },
+      "required": ["id", "chapterName", "subject", "stage", "dueDate", "completed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/entries/{entryId}": {
+      "schema": "StudyEntry",
+      "description": "User logged study entries"
+    },
+    "/users/{userId}/tests/{testId}": {
+      "schema": "TestEntry",
+      "description": "User logged mock test logs"
+    },
+    "/users/{userId}/chapterStatuses/{statusId}": {
+      "schema": "ChapterStatus",
+      "description": "User specific custom chapter completion statuses"
+    },
+    "/users/{userId}/revisions/{revisionId}": {
+      "schema": "RevisionTask",
+      "description": "User scheduled revision tasks"
+    }
+  }
+}

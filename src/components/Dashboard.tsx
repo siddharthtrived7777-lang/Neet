@@ -5,10 +5,11 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Flame, Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight } from 'lucide-react';
+import { Flame, Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
 import { formatDate, addDays, calculateStreaks } from '../utils';
+import { calculateFocusInsight } from '../utils/focusInsight';
 
 interface DashboardProps {
   entries: StudyEntry[];
@@ -32,6 +33,11 @@ export default function Dashboard({
   // 1. Compute Streaks
   const streaks = useMemo(() => {
     return calculateStreaks(entries);
+  }, [entries]);
+
+  // Today's Focus Insight
+  const focusData = useMemo(() => {
+    return calculateFocusInsight(entries);
   }, [entries]);
 
   // 2. Today's Metrics
@@ -205,6 +211,53 @@ export default function Dashboard({
             </button>
           </div>
         )}
+      </div>
+
+      {/* Today's Focus Insight Card (placed directly below "Today's Tasks" checklist) */}
+      <div 
+        id="todays-focus-card"
+        className={`rounded-2xl p-4 md:p-5 border transition-all duration-300 ${
+          focusData.isImbalance 
+            ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/40 border-amber-200/60' 
+            : 'bg-gradient-to-r from-emerald-50/50 to-teal-50/30 border-emerald-100/60'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={`p-2 rounded-xl mt-0.5 shrink-0 shadow-sm ${
+              focusData.isImbalance 
+                ? 'bg-amber-100/80 text-amber-700' 
+                : 'bg-emerald-100/80 text-emerald-700'
+            }`}>
+              {focusData.isImbalance ? (
+                <Target className="w-4.5 h-4.5 animate-pulse" />
+              ) : (
+                <Sparkles className="w-4.5 h-4.5" />
+              )}
+            </div>
+            <div className="space-y-1 min-w-0">
+              <span className={`text-[10px] uppercase tracking-widest font-extrabold ${
+                focusData.isImbalance ? 'text-amber-800' : 'text-emerald-800'
+              }`}>
+                {focusData.isImbalance ? "Today's Focus Recommendation" : "Weekly Balance Status"}
+              </span>
+              <p className="text-xs md:text-sm font-semibold text-slate-800 leading-normal">
+                {focusData.insight}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateToTab('today-focus')}
+            className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+              focusData.isImbalance
+                ? 'bg-white hover:bg-amber-50 text-amber-700 border-amber-200/50 shadow-sm'
+                : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-100/50 shadow-sm'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" /> Analyze Balance <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Grid of Key Performance Widgets */}
