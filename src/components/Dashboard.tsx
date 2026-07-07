@@ -563,6 +563,13 @@ export default function Dashboard({
         </div>
 
       </div>
+
+      {/* Developer Attribution Footer */}
+      <div className="pt-8 pb-2 text-center border-t border-slate-100/50 mt-8">
+        <p className="text-[10px] text-slate-400 font-medium tracking-wide">
+          Developed and designed by <span className="text-slate-600 font-semibold">Siddharth Trivedi</span>
+        </p>
+      </div>
     </div>
   );
 }
