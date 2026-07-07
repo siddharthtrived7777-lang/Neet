@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, CheckCircle, Clock, PlusCircle, Search, Target, Award, ListFilter, Trash2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, PlusCircle, Search, Target, Award, ListFilter, Trash2, Pencil, X } from 'lucide-react';
 import { StudyEntry, NEETSubject, StudyType, ConfidenceLevel } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
 import { calculateDuration, generateId, formatDate, triggerToast } from '../utils';
@@ -14,10 +14,12 @@ interface StudyEntryProps {
   onAddEntry: (entry: Omit<StudyEntry, 'id' | 'accuracy' | 'durationMinutes'>) => void;
   entries: StudyEntry[];
   onDeleteEntry: (id: string) => void;
+  onEditEntry: (id: string, entry: StudyEntry) => void;
 }
 
-export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: StudyEntryProps) {
+export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onEditEntry }: StudyEntryProps) {
   // Form State
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [date, setDate] = useState<string>(() => formatDate(new Date()));
   const [startTime, setStartTime] = useState<string>('14:00');
   const [endTime, setEndTime] = useState<string>('16:00');
@@ -34,6 +36,46 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
 
   // Notification State
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Edit Handlers
+  const handleStartEdit = (entry: StudyEntry) => {
+    setEditingId(entry.id);
+    setDate(entry.date);
+    setStartTime(entry.startTime);
+    setEndTime(entry.endTime);
+    setSubject(entry.subject);
+    setChapterQuery(entry.chapter);
+    setTopic(entry.topic || '');
+    setStudyType(entry.studyType);
+    setMcqsSolved(entry.mcqsSolved);
+    setMcqsCorrect(entry.mcqsCorrect);
+    setMcqsWrong(entry.mcqsWrong);
+    setConfidenceLevel(entry.confidenceLevel);
+    setNotes(entry.notes || '');
+    
+    // Scroll to the study entry form smoothly
+    const formEl = document.getElementById('study-entry-section');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth' });
+    }
+    triggerToast('Now editing entry. Scroll up to make changes!', 'info');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setDate(formatDate(new Date()));
+    setStartTime('14:00');
+    setEndTime('16:00');
+    setSubject('Biology');
+    setChapterQuery('');
+    setTopic('');
+    setStudyType('Self Study');
+    setMcqsSolved(0);
+    setMcqsCorrect(0);
+    setMcqsWrong(0);
+    setConfidenceLevel('Medium');
+    setNotes('');
+  };
 
   // Filter syllabus chapters based on chosen subject and search query
   const filteredSyllabusChapters = useMemo(() => {
@@ -70,20 +112,43 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
       return;
     }
 
-    onAddEntry({
-      date,
-      startTime,
-      endTime,
-      subject,
-      chapter: chapterQuery.trim(),
-      topic: topic.trim() || 'General Concept Review',
-      studyType,
-      mcqsSolved,
-      mcqsCorrect,
-      mcqsWrong,
-      confidenceLevel,
-      notes: notes.trim(),
-    });
+    if (editingId) {
+      onEditEntry(editingId, {
+        id: editingId,
+        date,
+        startTime,
+        endTime,
+        subject,
+        chapter: chapterQuery.trim(),
+        topic: topic.trim() || 'General Concept Review',
+        studyType,
+        mcqsSolved,
+        mcqsCorrect,
+        mcqsWrong,
+        confidenceLevel,
+        notes: notes.trim(),
+        durationMinutes: 0, // App.tsx will calculate duration
+        accuracy: 0, // App.tsx will calculate accuracy
+      });
+      setNotification(`Successfully updated study session for "${chapterQuery}"!`);
+      setEditingId(null);
+    } else {
+      onAddEntry({
+        date,
+        startTime,
+        endTime,
+        subject,
+        chapter: chapterQuery.trim(),
+        topic: topic.trim() || 'General Concept Review',
+        studyType,
+        mcqsSolved,
+        mcqsCorrect,
+        mcqsWrong,
+        confidenceLevel,
+        notes: notes.trim(),
+      });
+      setNotification(`Successfully logged study session for "${chapterQuery}"! Revisions updated.`);
+    }
 
     // Reset Form
     setTopic('');
@@ -91,7 +156,6 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
     setMcqsCorrect(0);
     setMcqsWrong(0);
     setNotes('');
-    setNotification(`Successfully logged study session for "${chapterQuery}"! Revisions updated.`);
     setTimeout(() => setNotification(null), 4000);
   };
 
@@ -135,6 +199,29 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
         {/* Entry Form Card */}
         <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {editingId && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-blue-50 border border-blue-150 text-blue-800 rounded-xl p-3.5 text-xs flex items-center justify-between shadow-sm"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Pencil className="w-4 h-4 text-blue-600 shrink-0 animate-pulse" />
+                  <div>
+                    <span className="font-bold block">Editing Session Log</span>
+                    <span className="text-[11px] text-blue-600 font-medium">You are currently editing an existing study block. Saving will recalculate your chapter metrics.</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-2.5 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:border-slate-300 rounded-lg transition-all cursor-pointer shrink-0 ml-2"
+                >
+                  Cancel Edit
+                </button>
+              </motion.div>
+            )}
+
             {/* Subject and Study Type */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -409,12 +496,35 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              className="w-full bg-medical-700 text-white font-medium hover:bg-medical-800 focus:ring-4 focus:ring-medical-200 rounded-xl text-sm px-5 py-3 text-center transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-medical-900/10"
-            >
-              <PlusCircle className="w-4 h-4" /> Save Study Session & Update Syllabus Status
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex-1 bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 rounded-xl text-sm px-5 py-3 text-center transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200/80"
+                >
+                  <X className="w-4 h-4" /> Cancel Edit
+                </button>
+              )}
+              <button
+                type="submit"
+                className={`flex-[2] text-white font-semibold focus:ring-4 rounded-xl text-sm px-5 py-3 text-center transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md ${
+                  editingId 
+                    ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-200 shadow-blue-900/10' 
+                    : 'bg-medical-700 hover:bg-medical-800 focus:ring-medical-200 shadow-medical-900/10'
+                }`}
+              >
+                {editingId ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" /> Save Updated Session Log
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="w-4 h-4" /> Save Study Session & Update Syllabus Status
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -460,13 +570,22 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
                               <p className="text-[10px] text-slate-500 font-medium italic">Topic: {entry.topic}</p>
                             )}
                           </div>
-                          <button
-                            onClick={() => onDeleteEntry(entry.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
-                            title="Delete entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={() => handleStartEdit(entry)}
+                              className="text-slate-400 hover:text-blue-600 p-1 rounded-lg hover:bg-blue-50 transition-all cursor-pointer"
+                              title="Edit entry"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteEntry(entry.id)}
+                              className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                              title="Delete entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 border-t border-slate-200/40 pt-2 text-[10px] text-slate-500">

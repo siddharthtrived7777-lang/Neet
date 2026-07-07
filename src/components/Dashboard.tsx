@@ -272,26 +272,131 @@ export default function Dashboard({
         
         {/* Today's Stats Card */}
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[220px]">
-          <div className="space-y-3">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study Load</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-mono font-extrabold text-slate-800">{todayMetrics.studyHrs.toFixed(1)}</span>
-              <span className="text-xs text-slate-500 font-semibold">hours total</span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-2 min-w-0 flex-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study Load</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-mono font-extrabold text-slate-800">{todayMetrics.studyHrs.toFixed(1)}</span>
+                <span className="text-xs text-slate-500 font-semibold">hours total</span>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-normal">
+                {todayMetrics.studyHrs === 0 
+                  ? "No study logs today yet. Start a session or log your classes!"
+                  : todayMetrics.studyHrs < 3
+                    ? "Great start! Keep pushing to reach your daily NEET goal."
+                    : "Outstanding study momentum today! Balance is key."
+                }
+              </p>
+            </div>
+
+            {/* Graphic Donut Chart */}
+            <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+              <svg width="100%" height="100%" viewBox="0 0 100 100" className="transform -rotate-90">
+                {/* Background track */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={36}
+                  fill="transparent"
+                  stroke="#f1f5f9"
+                  strokeWidth="9"
+                />
+                {todayMetrics.studyHrs > 0 ? (
+                  <>
+                    {/* Class segment */}
+                    {todayMetrics.classHrs > 0 && (
+                      <motion.circle
+                        cx="50"
+                        cy="50"
+                        r={36}
+                        fill="transparent"
+                        stroke="#3b82f6"
+                        strokeWidth="9"
+                        strokeDasharray={`${(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
+                        strokeDashoffset={0}
+                        strokeLinecap="round"
+                        initial={{ strokeDashoffset: 226.195 }}
+                        animate={{ strokeDashoffset: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                      />
+                    )}
+                    {/* Self Study segment */}
+                    {todayMetrics.selfHrs > 0 && (
+                      <motion.circle
+                        cx="50"
+                        cy="50"
+                        r={36}
+                        fill="transparent"
+                        stroke="#10b981"
+                        strokeWidth="9"
+                        strokeDasharray={`${(todayMetrics.selfHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
+                        strokeDashoffset={-(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195}
+                        strokeLinecap="round"
+                        initial={{ strokeDashoffset: 226.195 }}
+                        animate={{ strokeDashoffset: -(todayMetrics.classHrs / todayMetrics.studyHrs) * 226.195 }}
+                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
+                      />
+                    )}
+                    {/* Revision segment */}
+                    {todayMetrics.revHrs > 0 && (
+                      <motion.circle
+                        cx="50"
+                        cy="50"
+                        r={36}
+                        fill="transparent"
+                        stroke="#f59e0b"
+                        strokeWidth="9"
+                        strokeDasharray={`${(todayMetrics.revHrs / todayMetrics.studyHrs) * 226.195} 226.195`}
+                        strokeDashoffset={-((todayMetrics.classHrs + todayMetrics.selfHrs) / todayMetrics.studyHrs) * 226.195}
+                        strokeLinecap="round"
+                        initial={{ strokeDashoffset: 226.195 }}
+                        animate={{ strokeDashoffset: -((todayMetrics.classHrs + todayMetrics.selfHrs) / todayMetrics.studyHrs) * 226.195 }}
+                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r={36}
+                    fill="transparent"
+                    stroke="#e2e8f0"
+                    strokeWidth="9"
+                    strokeDasharray="4 4"
+                  />
+                )}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-sm font-black font-mono text-slate-800 leading-none">
+                  {todayMetrics.studyHrs > 0 ? `${Math.round((todayMetrics.studyHrs / 8) * 100)}%` : '0%'}
+                </span>
+                <span className="text-[7px] text-slate-400 font-extrabold uppercase mt-0.5">Target</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500">
-            <div>
-              <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Class</span>
-              <span className="font-bold text-slate-700 font-mono">{todayMetrics.classHrs.toFixed(1)}h</span>
+          <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 mt-4">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded bg-blue-500 shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Class</span>
+                <span className="font-bold text-slate-700 font-mono">{todayMetrics.classHrs.toFixed(1)}h</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Self Study</span>
-              <span className="font-bold text-slate-700 font-mono">{todayMetrics.selfHrs.toFixed(1)}h</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded bg-emerald-500 shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Self Study</span>
+                <span className="font-bold text-slate-700 font-mono">{todayMetrics.selfHrs.toFixed(1)}h</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Revision</span>
-              <span className="font-bold text-slate-700 font-mono">{todayMetrics.revHrs.toFixed(1)}h</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded bg-amber-500 shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Revision</span>
+                <span className="font-bold text-slate-700 font-mono">{todayMetrics.revHrs.toFixed(1)}h</span>
+              </div>
             </div>
           </div>
         </div>

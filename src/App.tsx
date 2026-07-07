@@ -23,7 +23,8 @@ import {
   CloudOff,
   LogOut,
   RefreshCw,
-  Target
+  Target,
+  Trophy
 } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType } from './types';
 import { getChapterSubject } from './neetData';
@@ -71,6 +72,7 @@ import TestTrackerPage from './components/TestTrackerPage';
 import SearchPage from './components/SearchPage';
 import AiInsightsPanel from './components/AiInsightsPanel';
 import TodayFocusPage from './components/TodayFocusPage';
+import MilestonesPage from './components/MilestonesPage';
 
 // Helper to fix any previously miscategorized "Basic Maths" entries to Physics
 function normalizeBasicMaths(
@@ -441,6 +443,104 @@ export default function App() {
           saveRevisionTaskCloud(uid, rev);
         }
       });
+    }
+  };
+
+  // 1.5. EDIT STUDY ENTRY
+  const handleEditEntry = (id: string, updatedEntryData: StudyEntry) => {
+    const oldEntry = entries.find(e => e.id === id);
+    if (!oldEntry) return;
+
+    // A. Rollback old stats from chapterStatuses
+    let rolledBackStatuses = chapterStatuses.map(chap => {
+      if (chap.chapterName === oldEntry.chapter) {
+        const remainingHrs = Math.max(0, chap.totalHours - (oldEntry.durationMinutes / 60));
+        const remainingMcqs = Math.max(0, chap.totalMcqs - oldEntry.mcqsSolved);
+        
+        let newAvg = 0;
+        if (remainingMcqs > 0) {
+          const totalCorrectBefore = (chap.averageAccuracy * chap.totalMcqs) / 100;
+          const remainingCorrect = Math.max(0, totalCorrectBefore - oldEntry.mcqsCorrect);
+          newAvg = (remainingCorrect / remainingMcqs) * 100;
+        }
+
+        // Remove last confidence level trend
+        let updatedTrends = [...chap.confidenceTrend];
+        const lastIdx = updatedTrends.lastIndexOf(oldEntry.confidenceLevel);
+        if (lastIdx !== -1) {
+          updatedTrends.splice(lastIdx, 1);
+        }
+
+        return {
+          ...chap,
+          totalHours: Number(remainingHrs.toFixed(2)),
+          totalMcqs: remainingMcqs,
+          averageAccuracy: Number(newAvg.toFixed(2)),
+          confidenceTrend: updatedTrends
+        };
+      }
+      return chap;
+    });
+
+    // B. Compute new duration, accuracy, and create the full updated entry
+    const duration = Math.max(
+      15,
+      Math.floor((new Date(`${updatedEntryData.date}T${updatedEntryData.endTime}`).getTime() - 
+                  new Date(`${updatedEntryData.date}T${updatedEntryData.startTime}`).getTime()) / (1000 * 60))
+    );
+    const accuracy = updatedEntryData.mcqsSolved > 0 
+      ? Math.round((updatedEntryData.mcqsCorrect / updatedEntryData.mcqsSolved) * 100) 
+      : 0;
+
+    const entry: StudyEntry = {
+      ...updatedEntryData,
+      durationMinutes: isNaN(duration) ? 120 : duration,
+      accuracy
+    };
+
+    // C. Update the entries array
+    const updatedEntries = entries.map(e => e.id === id ? entry : e);
+    saveEntries(updatedEntries);
+
+    // D. Apply new stats to chapterStatuses
+    const finalStatuses = rolledBackStatuses.map(chap => {
+      if (chap.chapterName === entry.chapter) {
+        const currentHours = chap.totalHours + (entry.durationMinutes / 60);
+        const currentMcqs = chap.totalMcqs + entry.mcqsSolved;
+        
+        let currentAvgAccuracy = chap.averageAccuracy;
+        if (entry.mcqsSolved > 0) {
+          const totalCorrectBefore = (chap.averageAccuracy * chap.totalMcqs) / 100;
+          const currentCorrect = totalCorrectBefore + entry.mcqsCorrect;
+          currentAvgAccuracy = (currentCorrect / currentMcqs) * 100;
+        }
+
+        const currentTrends = [...chap.confidenceTrend, entry.confidenceLevel].slice(-5);
+
+        return {
+          ...chap,
+          lastStudiedDate: entry.date,
+          totalHours: Number(currentHours.toFixed(2)),
+          totalMcqs: currentMcqs,
+          averageAccuracy: Number(currentAvgAccuracy.toFixed(2)),
+          confidenceTrend: currentTrends
+        };
+      }
+      return chap;
+    });
+
+    saveChapterStatuses(finalStatuses);
+
+    // E. Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      saveStudyEntryCloud(uid, entry);
+      const affectedStatus = finalStatuses.find(chap => chap.chapterName === entry.chapter);
+      if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
+      if (oldEntry.chapter !== entry.chapter) {
+        const oldAffectedStatus = finalStatuses.find(chap => chap.chapterName === oldEntry.chapter);
+        if (oldAffectedStatus) saveChapterStatusCloud(uid, oldAffectedStatus);
+      }
     }
   };
 
@@ -894,6 +994,7 @@ export default function App() {
               { id: 'syllabus', label: 'Syllabus Tracker', icon: Layers },
               { id: 'analytics', label: 'Analytics', icon: BarChart2 },
               { id: 'mock-tests', label: 'Mock Scorecard', icon: Award },
+              { id: 'milestones', label: 'Study Milestones', icon: Trophy },
               { id: 'search', label: 'Search Chapter', icon: Search },
               { id: 'ai-coach', label: 'Aura AI Coach', icon: Sparkles },
               { id: 'today-focus', label: "Today's Focus", icon: Target }
@@ -1066,6 +1167,7 @@ export default function App() {
             onAddEntry={handleAddEntry}
             entries={entries}
             onDeleteEntry={handleDeleteEntry}
+            onEditEntry={handleEditEntry}
           />
         )}
 
@@ -1126,6 +1228,15 @@ export default function App() {
             revisions={revisions}
             onNavigateToTab={(tab) => setActiveTab(tab)}
             onSetSearchQuery={(query) => setSearchInitialChapter(query)}
+          />
+        )}
+
+        {activeTab === 'milestones' && (
+          <MilestonesPage
+            entries={entries}
+            chapterStatuses={chapterStatuses}
+            revisions={revisions}
+            tests={tests}
           />
         )}
       </main>
