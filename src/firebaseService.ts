@@ -171,6 +171,14 @@ export async function saveRevisionTaskCloud(userId: string, rev: RevisionTask) {
 }
 
 /**
+ * Delete single RevisionTask
+ */
+export async function deleteRevisionTaskCloud(userId: string, revId: string) {
+  const docRef = doc(db, 'users', userId, 'revisions', revId);
+  await deleteDoc(docRef);
+}
+
+/**
  * Save user's exam date to Cloud Firestore
  */
 export async function saveExamDateCloud(userId: string, examDate: string | null) {

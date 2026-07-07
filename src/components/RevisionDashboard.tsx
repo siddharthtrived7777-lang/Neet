@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen, Trash2 } from 'lucide-react';
 import { RevisionTask, NEETSubject, PriorityLevel } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
 import { formatDate, addDays, daysBetween } from '../utils';
@@ -14,9 +14,10 @@ interface RevisionDashboardProps {
   revisions: RevisionTask[];
   onCompleteRevision: (id: string, accuracy: number, mcqsSolved: number, notes: string) => void;
   onMarkForgot: (id: string) => void;
+  onDeleteRevision: (id: string) => void;
 }
 
-export default function RevisionDashboard({ revisions, onCompleteRevision, onMarkForgot }: RevisionDashboardProps) {
+export default function RevisionDashboard({ revisions, onCompleteRevision, onMarkForgot, onDeleteRevision }: RevisionDashboardProps) {
   const [filterSubject, setFilterSubject] = useState<NEETSubject | 'All'>('All');
   const [filterPriority, setFilterPriority] = useState<PriorityLevel | 'All'>('All');
   
@@ -270,6 +271,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                     rev={rev}
                     onComplete={() => handleOpenComplete(rev)}
                     onForgot={() => onMarkForgot(rev.id)}
+                    onDelete={() => onDeleteRevision(rev.id)}
                     isOverdue
                   />
                 ))}
@@ -302,6 +304,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                     rev={rev}
                     onComplete={() => handleOpenComplete(rev)}
                     onForgot={() => onMarkForgot(rev.id)}
+                    onDelete={() => onDeleteRevision(rev.id)}
                   />
                 ))}
               </div>
@@ -333,6 +336,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                     rev={rev}
                     onComplete={() => handleOpenComplete(rev)}
                     onForgot={() => onMarkForgot(rev.id)}
+                    onDelete={() => onDeleteRevision(rev.id)}
                   />
                 ))}
               </div>
@@ -361,6 +365,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                     rev={rev}
                     onComplete={() => handleOpenComplete(rev)}
                     onForgot={() => onMarkForgot(rev.id)}
+                    onDelete={() => onDeleteRevision(rev.id)}
                   />
                 ))}
               </div>
@@ -622,10 +627,11 @@ interface CardProps {
   rev: RevisionTask;
   onComplete: () => void;
   onForgot: () => void;
+  onDelete: () => void;
   isOverdue?: boolean;
 }
 
-function RevisionCard({ rev, onComplete, onForgot, isOverdue }: CardProps) {
+function RevisionCard({ rev, onComplete, onForgot, onDelete, isOverdue }: CardProps) {
   const clr = SUBJECT_COLORS[rev.subject] || SUBJECT_COLORS.Biology;
   
   return (
@@ -653,13 +659,14 @@ function RevisionCard({ rev, onComplete, onForgot, isOverdue }: CardProps) {
           </span>
         </div>
 
-        <h4 className="text-xs font-bold text-slate-800 leading-snug">{rev.chapterName}</h4>
-        
-        {rev.subtopics && (
-          <p className="text-[10px] text-slate-500 italic leading-snug">
-            <span className="font-semibold not-italic text-slate-600">Topics to revise:</span> {rev.subtopics}
-          </p>
-        )}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <h4 className="text-xs font-bold text-slate-800 leading-snug">{rev.chapterName}</h4>
+          {rev.subtopics && (
+            <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-md px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
+              {rev.subtopics}
+            </span>
+          )}
+        </div>
         
         {isOverdue && (
           <p className="text-[10px] text-rose-600 font-medium flex items-center gap-1">
@@ -682,6 +689,14 @@ function RevisionCard({ rev, onComplete, onForgot, isOverdue }: CardProps) {
           className="px-3 py-1.5 text-[11px] font-bold text-white bg-medical-700 hover:bg-medical-800 rounded-lg border border-medical-700 hover:border-medical-800 transition-all cursor-pointer flex items-center gap-1 shadow-xs"
         >
           <CheckSquare className="w-3.5 h-3.5" /> Checked
+        </button>
+
+        <button
+          onClick={onDelete}
+          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200/60 hover:border-rose-200 transition-all cursor-pointer"
+          title="Delete this revision task"
+        >
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>

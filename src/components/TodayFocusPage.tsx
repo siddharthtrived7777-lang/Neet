@@ -213,13 +213,15 @@ export default function TodayFocusPage({
                   {recommendations.pendingRevs.map(rev => (
                     <div key={rev.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs hover:bg-slate-100/50 transition-colors">
                       <div className="min-w-0 flex-1">
-                        <span className="font-bold text-slate-700 block truncate leading-snug">{rev.chapterName}</span>
-                        {rev.subtopics && (
-                          <span className="text-[10px] text-slate-500 italic block truncate mt-0.5" title={rev.subtopics}>
-                            Topics: {rev.subtopics}
-                          </span>
-                        )}
-                        <span className="text-[9px] text-slate-400 font-mono block mt-0.5">Stage {rev.stage} • Due {rev.dueDate}</span>
+                        <div className="flex flex-wrap items-baseline gap-1.5">
+                          <span className="font-bold text-slate-700 block truncate leading-snug">{rev.chapterName}</span>
+                          {rev.subtopics && (
+                            <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
+                              {rev.subtopics}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-mono block mt-1">Stage {rev.stage} • Due {rev.dueDate}</span>
                       </div>
                       <button 
                         onClick={() => onNavigateToTab('revisions')}

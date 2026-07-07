@@ -54,6 +54,7 @@ import {
   deleteTestEntryCloud,
   saveChapterStatusCloud,
   saveRevisionTaskCloud,
+  deleteRevisionTaskCloud,
   saveExamDateCloud,
   fetchExamDateCloud
 } from './firebaseService';
@@ -647,6 +648,16 @@ export default function App() {
     }
   };
 
+  // 7.5. DELETE REVISION TASK
+  const handleDeleteRevision = (id: string) => {
+    saveRevisions(revisions.filter(r => r.id !== id));
+
+    // Sync to Firebase if authenticated
+    if (auth.currentUser) {
+      deleteRevisionTaskCloud(auth.currentUser.uid, id);
+    }
+  };
+
   // 8. URGENT RECOMMENDATION REVISION INJECTOR
   const handleUrgentScheduleRevision = (chapterName: string) => {
     const todayStr = formatDate(new Date());
@@ -1063,6 +1074,7 @@ export default function App() {
             revisions={revisions}
             onCompleteRevision={handleCompleteRevision}
             onMarkForgot={handleMarkForgot}
+            onDeleteRevision={handleDeleteRevision}
           />
         )}
 

@@ -190,12 +190,14 @@ export default function Dashboard({
                         </span>
                         <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
                       </div>
-                      <span className="font-bold text-slate-700 block truncate leading-tight mt-1">{task.chapterName}</span>
-                      {task.subtopics && (
-                        <span className="text-[10px] text-slate-500 italic block truncate mt-0.5" title={task.subtopics}>
-                          Topics: {task.subtopics}
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
+                        <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                        {task.subtopics && (
+                          <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
+                            {task.subtopics}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <button
