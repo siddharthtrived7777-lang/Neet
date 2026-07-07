@@ -34,8 +34,11 @@ import {
   formatDate,
   generateId,
   addDays,
-  daysBetween
+  daysBetween,
+  triggerToast
 } from './utils';
+import { motion, AnimatePresence } from 'motion/react';
+
 
 // Firebase imports
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
@@ -87,6 +90,28 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
+
+  // Toast notifications state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  useEffect(() => {
+    window.showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+      setToast({ message, type });
+    };
+    return () => {
+      window.showToast = undefined;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
 
   // Load from Local Storage on mount and start Firebase connection test
   useEffect(() => {
@@ -472,7 +497,7 @@ export default function App() {
   const handleQuickCompleteRevision = (id: string) => {
     // Quick-logs standard 20 MCQs with 85% accuracy and auto-pushed note
     handleCompleteRevision(id, 85, 20, 'Checked off quickly from dashboard checklist.');
-    alert('Revision completed quickly with standard feedback (20 MCQs, 85% Accuracy). Spaced calendar shifted!');
+    triggerToast('Revision completed quickly with standard feedback (20 MCQs, 85% Accuracy). Spaced calendar shifted!', 'success');
   };
 
   // 5. MARK REVISION "I FORGOT" (IMMEDIATE TOMORROW SCHEDULING)
@@ -508,7 +533,7 @@ export default function App() {
       if (affectedStatus) saveChapterStatusCloud(uid, affectedStatus);
     }
 
-    alert(`Refresher for "${task.chapterName}" scheduled for tomorrow. High priority set!`);
+    triggerToast(`Refresher for "${task.chapterName}" scheduled for tomorrow. High priority set!`, 'info');
   };
 
   // 6. ADD MOCK SCORE
@@ -631,12 +656,12 @@ export default function App() {
             syncLocalDataToCloud(auth.currentUser.uid, parsed);
           }
 
-          alert('Backup database imported successfully! Dashboard values synchronized.');
+          triggerToast('Backup database imported successfully! Dashboard values synchronized.', 'success');
         } else {
-          alert('Malformed backup JSON file. Ensure you import a valid NEET planner export.');
+          triggerToast('Malformed backup JSON file. Ensure you import a valid NEET planner export.', 'error');
         }
       } catch (err) {
-        alert('Failed to parse JSON file.');
+        triggerToast('Failed to parse JSON file.', 'error');
       }
     };
     fileReader.readAsText(file);
@@ -885,7 +910,7 @@ export default function App() {
                 <button
                   onClick={async () => {
                     await signOut(auth);
-                    alert("Signed out successfully. Returning to offline local storage mode.");
+                    triggerToast("Signed out successfully. Returning to offline local storage mode.", "info");
                   }}
                   className="w-full text-center text-[9px] font-bold mt-2.5 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-300 rounded transition-all cursor-pointer flex items-center justify-center gap-1 border border-slate-800"
                 >
@@ -1017,7 +1042,7 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)} 
         onAuthSuccess={(uid) => {
           // Sync automatically handled by onAuthStateChanged!
-          alert("Successfully connected to cloud database! Your progress is now synced across your tablet and mobile devices.");
+          triggerToast("Successfully connected to cloud database! Your progress is now synced across your tablet and mobile devices.", "success");
         }}
       />
 
@@ -1027,6 +1052,51 @@ export default function App() {
         currentDate={examDate}
         onSave={handleSaveExamDate}
       />
+
+      {/* Dynamic Toast System */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            id="toast-notification-banner"
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 max-w-sm p-4 bg-white rounded-2xl border shadow-xl shadow-slate-100/40"
+            style={{
+              borderColor: toast.type === 'success' ? '#bbf7d0' : toast.type === 'error' ? '#fecaca' : '#e2e8f0'
+            }}
+          >
+            <div className={`p-1.5 rounded-xl ${
+              toast.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
+              toast.type === 'error' ? 'bg-red-50 text-red-600' :
+              'bg-blue-50 text-blue-600'
+            }`}>
+              {toast.type === 'success' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : toast.type === 'error' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.085 1.086L12.5 13m0-4.5h.008v.008H12.5V8.5z" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-tight">
+                {toast.type === 'success' ? 'Success' : toast.type === 'error' ? 'Error' : 'Notification'}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                {toast.message}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

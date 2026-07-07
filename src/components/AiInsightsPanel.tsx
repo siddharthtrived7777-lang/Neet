@@ -5,9 +5,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, HelpCircle, ArrowRight, CheckCircle, AlertCircle, MessageSquare, ShieldAlert, BookOpen, User, Lightbulb } from 'lucide-react';
+import { Sparkles, HelpCircle, ArrowRight, CheckCircle, AlertCircle, MessageSquare, ShieldAlert, BookOpen, User, Lightbulb, RotateCcw } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask } from '../types';
-import { generateAiInsights, AiInsight } from '../utils';
+import { generateAiInsights, AiInsight, triggerToast } from '../utils';
 
 interface AiInsightsPanelProps {
   entries: StudyEntry[];
@@ -38,6 +38,7 @@ export default function AiInsightsPanel({
   ]);
 
   const [inputVal, setInputVal] = useState<string>('');
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
   const presetPrompts = [
     "What are my weakest chapters?",
@@ -47,7 +48,7 @@ export default function AiInsightsPanel({
   ];
 
   // Custom response engine based on real state
-  const handleBotResponse = (promptText: string) => {
+  const handleBotResponse = async (promptText: string) => {
     const userMsg = {
       id: Math.random().toString(),
       sender: 'user' as const,
@@ -56,15 +57,59 @@ export default function AiInsightsPanel({
     };
 
     setMessages(prev => [...prev, userMsg]);
+    setIsTyping(true);
 
-    // Analyze data and generate response
+    const weakChaps = chapterStatuses.filter(c => c.totalMcqs > 0 && c.averageAccuracy < 78);
+    const overdueRevs = revisions.filter(r => !r.completed && new Date(r.dueDate) < new Date());
+    const totalHrs = entries.reduce((sum, e) => sum + e.durationMinutes / 60, 0);
+    const p_hrs = entries.filter(e => e.subject === 'Physics').reduce((s, e) => s + e.durationMinutes / 60, 0);
+    const c_hrs = entries.filter(e => e.subject === 'Chemistry').reduce((s, e) => s + e.durationMinutes / 60, 0);
+    const b_hrs = entries.filter(e => e.subject === 'Biology').reduce((s, e) => s + e.durationMinutes / 60, 0);
+
+    const context = {
+      weakChaps,
+      overdueRevs,
+      totalHrs,
+      p_hrs,
+      c_hrs,
+      b_hrs
+    };
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: promptText,
+          history: messages,
+          context
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API response not OK');
+      }
+
+      const data = await response.json();
+      if (data.reply) {
+        setMessages(prev => [...prev, {
+          id: Math.random().toString(),
+          sender: 'aura' as const,
+          text: data.reply,
+          date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+        setIsTyping(false);
+        return;
+      }
+    } catch (error) {
+      console.warn("Gemini API direct query failed, falling back to local diagnostic response:", error);
+    }
+
+    // Heuristic Fallback
     setTimeout(() => {
       let responseText = '';
-
-      const weakChaps = chapterStatuses.filter(c => c.totalMcqs > 0 && c.averageAccuracy < 78);
-      const overdueRevs = revisions.filter(r => !r.completed && new Date(r.dueDate) < new Date());
-      const totalHrs = entries.reduce((sum, e) => sum + e.durationMinutes / 60, 0);
-
       const normalizedPrompt = promptText.toLowerCase();
 
       if (normalizedPrompt.includes('weak') || normalizedPrompt.includes('accuracy')) {
@@ -84,10 +129,6 @@ export default function AiInsightsPanel({
           responseText = "Your spaced-repetition calendar is completely up to date! There are no overdue reviews. You are in an elite cognitive retention phase.";
         }
       } else if (normalizedPrompt.includes('balance') || normalizedPrompt.includes('subject')) {
-        const p_hrs = entries.filter(e => e.subject === 'Physics').reduce((s, e) => s + e.durationMinutes / 60, 0);
-        const c_hrs = entries.filter(e => e.subject === 'Chemistry').reduce((s, e) => s + e.durationMinutes / 60, 0);
-        const b_hrs = entries.filter(e => e.subject === 'Biology').reduce((s, e) => s + e.durationMinutes / 60, 0);
-
         responseText = `Here is your cumulative study time breakdown across the three core NEET sections:\n\n` +
           `• **Biology:** ${b_hrs.toFixed(1)} hours (${totalHrs > 0 ? Math.round((b_hrs / totalHrs) * 100) : 0}%)\n` +
           `• **Chemistry:** ${c_hrs.toFixed(1)} hours (${totalHrs > 0 ? Math.round((c_hrs / totalHrs) * 100) : 0}%)\n` +
@@ -112,14 +153,27 @@ export default function AiInsightsPanel({
         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, botMsg]);
+      setIsTyping(false);
     }, 850);
   };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputVal.trim()) return;
+    if (!inputVal.trim() || isTyping) return;
     handleBotResponse(inputVal.trim());
     setInputVal('');
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: 'welcome',
+        sender: 'aura',
+        text: "Hello! I am Aura, your cognitive NEET preparation coach. I've analyzed your daily logbooks and practice test scorecard. Ask me anything about your current weaknesses, forgetting curve schedules, or subject coverage splits!",
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+    triggerToast('Aura Coach conversation history has been cleared!', 'info');
   };
 
   return (
@@ -186,6 +240,17 @@ export default function AiInsightsPanel({
                 </span>
               </div>
             </div>
+            {messages.length > 1 && (
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-slate-500 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-xl transition-all cursor-pointer"
+                title="Clear conversation history"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Clear Chat
+              </button>
+            )}
           </div>
 
           {/* Preset trigger buttons */}
@@ -227,6 +292,19 @@ export default function AiInsightsPanel({
                 </div>
               </div>
             ))}
+
+            {isTyping && (
+              <div className="flex gap-3 max-w-[85%]">
+                <div className="p-2 rounded-xl shrink-0 h-8 w-8 flex items-center justify-center border bg-medical-100 border-medical-200 text-medical-700">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="p-3.5 rounded-2xl text-xs bg-slate-50 text-slate-500 rounded-tl-none border border-slate-150 flex items-center gap-1.5 shadow-xs">
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input control box */}

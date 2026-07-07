@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen } from 'lucide-react';
 import { RevisionTask, NEETSubject, PriorityLevel } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
 import { formatDate, addDays, daysBetween } from '../utils';
@@ -28,6 +28,80 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
 
   const todayStr = useMemo(() => formatDate(new Date()), []);
   const tomorrowStr = useMemo(() => addDays(todayStr, 1), [todayStr]);
+
+  // Interval Analysis (1, 3, 5, 7, 14, 21, 30 days based)
+  const [selectedInterval, setSelectedInterval] = useState<number>(7);
+  const intervalStats = useMemo(() => {
+    const completedInWindow = revisions.filter(r => {
+      if (!r.completed || !r.completedDate) return false;
+      const diff = daysBetween(r.completedDate, todayStr);
+      return diff >= 0 && diff <= selectedInterval;
+    });
+
+    const pendingInWindow = revisions.filter(r => {
+      if (r.completed) return false;
+      const diff = daysBetween(todayStr, r.dueDate);
+      return diff >= 0 && diff <= selectedInterval;
+    });
+
+    const totalScheduled = completedInWindow.length + pendingInWindow.length;
+    const completedCount = completedInWindow.length;
+    const completionRate = totalScheduled > 0 ? Math.round((completedCount / totalScheduled) * 100) : 0;
+
+    const accEntries = completedInWindow.filter(r => r.accuracyAtRevision !== null);
+    const avgAccuracy = accEntries.length > 0
+      ? Math.round(accEntries.reduce((acc, r) => acc + (r.accuracyAtRevision || 0), 0) / accEntries.length)
+      : 0;
+
+    const subjectDistribution: Record<NEETSubject, { completed: number; total: number }> = {
+      Physics: { completed: 0, total: 0 },
+      Chemistry: { completed: 0, total: 0 },
+      Biology: { completed: 0, total: 0 }
+    };
+
+    completedInWindow.forEach(r => {
+      if (subjectDistribution[r.subject]) {
+        subjectDistribution[r.subject].completed++;
+        subjectDistribution[r.subject].total++;
+      }
+    });
+
+    pendingInWindow.forEach(r => {
+      if (subjectDistribution[r.subject]) {
+        subjectDistribution[r.subject].total++;
+      }
+    });
+
+    let retentionScore = "No completed revisions in this window";
+    let retentionColor = "text-slate-500 bg-slate-50 border-slate-200";
+    if (completedInWindow.length > 0) {
+      if (avgAccuracy >= 90) {
+        retentionScore = "Excellent (Mastery Level)";
+        retentionColor = "text-emerald-700 bg-emerald-50 border-emerald-100";
+      } else if (avgAccuracy >= 80) {
+        retentionScore = "Strong (Solid Retentiveness)";
+        retentionColor = "text-blue-700 bg-blue-50 border-blue-100";
+      } else if (avgAccuracy >= 65) {
+        retentionScore = "Moderate (Needs Refinement)";
+        retentionColor = "text-amber-700 bg-amber-50 border-amber-100";
+      } else {
+        retentionScore = "Critical (High Attrition)";
+        retentionColor = "text-rose-700 bg-rose-50 border-rose-100";
+      }
+    }
+
+    return {
+      completedInWindow,
+      pendingInWindow,
+      totalScheduled,
+      completedCount,
+      completionRate,
+      avgAccuracy,
+      subjectDistribution,
+      retentionScore,
+      retentionColor
+    };
+  }, [revisions, selectedInterval, todayStr]);
 
   // Group revisions
   const groupedRevisions = useMemo(() => {
@@ -121,7 +195,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
           <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold text-slate-700 block">Typical Schedule (80-95%)</span>
-            <p className="text-slate-500 mt-0.5">Retains core memory anchors at intervals of 1, 3, 7, 15, 30, 60, and 90 days.</p>
+            <p className="text-slate-500 mt-0.5">Retains core memory anchors at intervals of 1, 3, 5, 7, 14, 21, and 30 days.</p>
           </div>
         </div>
 
@@ -382,6 +456,157 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
           </div>
         )}
       </AnimatePresence>
+
+      {/* Spaced Repetition Interval Analysis (1, 3, 5, 7 ... 30 Days based) */}
+      <div id="spaced-repetition-interval-analysis" className="bg-white border border-slate-100 rounded-2xl p-5 md:p-6 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="w-5 h-5 text-medical-600" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Spaced Repetition Cognitive Analytics</h3>
+              <p className="text-[10px] text-slate-400 font-medium">Analyze learning retention & revision completion schedules over custom windows</p>
+            </div>
+          </div>
+
+          {/* Day Interval Selector Buttons */}
+          <div className="flex flex-wrap gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/30">
+            {[1, 3, 5, 7, 14, 21, 30].map(days => (
+              <button
+                key={days}
+                onClick={() => setSelectedInterval(days)}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  selectedInterval === days
+                    ? 'bg-white text-medical-700 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
+                }`}
+              >
+                {days} {days === 1 ? 'Day' : 'Days'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Dynamic Analytics Stats cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Metric 1: Revision Schedule load */}
+          <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 flex items-start gap-3">
+            <div className="p-2.5 rounded-lg bg-medical-50 text-medical-600 shrink-0">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Revision Load</span>
+              <span className="text-lg font-mono font-black text-slate-800 block leading-tight">
+                {intervalStats.completedCount} / {intervalStats.totalScheduled} Completed
+              </span>
+              <div className="flex items-center gap-1.5 pt-1.5">
+                <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-medical-500 h-full" style={{ width: `${intervalStats.completionRate}%` }}></div>
+                </div>
+                <span className="text-[9px] font-mono font-bold text-slate-500">{intervalStats.completionRate}% Done</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metric 2: Average Revision Accuracy */}
+          <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 flex items-start gap-3">
+            <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Avg Recall Accuracy</span>
+              <span className="text-lg font-mono font-black text-slate-800 block leading-tight">
+                {intervalStats.avgAccuracy > 0 ? `${intervalStats.avgAccuracy}%` : 'N/A'}
+              </span>
+              <span className="text-[9px] text-slate-400 block pt-1 leading-normal font-medium">
+                {intervalStats.avgAccuracy >= 85 
+                  ? "Indicates strong neural consolidation." 
+                  : intervalStats.avgAccuracy > 0 
+                  ? "Requires minor conceptual review." 
+                  : "No completions recorded in window."}
+              </span>
+            </div>
+          </div>
+
+          {/* Metric 3: Cognitive Retention State */}
+          <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 flex items-start gap-3">
+            <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600 shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Retention Category</span>
+              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border ${intervalStats.retentionColor} mt-0.5`}>
+                {intervalStats.retentionScore}
+              </span>
+              <span className="text-[9px] text-slate-400 block pt-1.5 leading-normal font-medium">
+                Based on active spaced repetition logs.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Subject wise Distribution Progress Bars */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div className="space-y-4">
+            <h4 className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Subject Distribution in this {selectedInterval}-Day Window</h4>
+            
+            <div className="space-y-3">
+              {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map(subj => {
+                const subStats = intervalStats.subjectDistribution[subj];
+                const clrs = SUBJECT_COLORS[subj] || SUBJECT_COLORS.Biology;
+                const percent = subStats.total > 0 ? Math.round((subStats.completed / subStats.total) * 100) : 0;
+
+                return (
+                  <div key={subj} className="space-y-1.5 bg-slate-50/30 p-2.5 rounded-xl border border-slate-100/60">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${clrs.bg}`}></span>
+                        {subj}
+                      </span>
+                      <span className="font-mono text-[10px] font-semibold text-slate-500">
+                        {subStats.completed} / {subStats.total} Revisions Done ({percent}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${clrs.bg}`} 
+                        style={{ width: `${subStats.total > 0 ? (subStats.completed / subStats.total) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Logged Revisions Listing inside this window */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Completions recorded in this {selectedInterval}-Day Window</h4>
+
+            {intervalStats.completedInWindow.length === 0 ? (
+              <div className="h-[148px] bg-slate-50/50 border border-slate-100 border-dashed rounded-xl flex flex-col items-center justify-center text-center p-4">
+                <BookOpen className="w-5 h-5 text-slate-300 mb-1" />
+                <p className="text-xs font-semibold text-slate-400 leading-normal">No revisions completed yet</p>
+                <p className="text-[9px] text-slate-400 max-w-[220px] leading-relaxed">Completing due revisions above will automatically populate this cognitive timeline.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[148px] overflow-y-auto pr-1">
+                {intervalStats.completedInWindow.map(task => (
+                  <div key={task.id} className="p-2.5 bg-emerald-50/20 border border-emerald-100/40 rounded-xl flex items-center justify-between text-xs">
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                      <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage} • Done {task.completedDate}</span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="text-[10px] font-mono font-extrabold text-emerald-600 block leading-tight">{task.accuracyAtRevision}%</span>
+                      <span className="text-[8px] text-slate-400">Score</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { Award, Target, BookOpen, AlertCircle, PlusCircle, CheckCircle, Trash2, HelpCircle } from 'lucide-react';
 import { TestEntry, NEETSubject } from '../types';
 import { NEET_SYLLABUS } from '../neetData';
-import { formatDate } from '../utils';
+import { formatDate, triggerToast } from '../utils';
 
 interface TestTrackerPageProps {
   tests: TestEntry[];
@@ -62,11 +62,11 @@ export default function TestTrackerPage({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!testName.trim()) {
-      alert('Please provide a mock test name.');
+      triggerToast('Please provide a mock test name.', 'error');
       return;
     }
     if (marks > outOf) {
-      alert('Marks cannot exceed total maximum marks.');
+      triggerToast('Marks cannot exceed total maximum marks.', 'error');
       return;
     }
 
@@ -347,7 +347,7 @@ export default function TestTrackerPage({
                     <button
                       onClick={() => {
                         onUrgentScheduleRevision(rec.chapterName);
-                        alert(`Scheduled an urgent revision for "${rec.chapterName}" tomorrow! Check your Revision Dashboard.`);
+                        triggerToast(`Scheduled an urgent revision for "${rec.chapterName}" tomorrow! Check your Revision Dashboard.`, 'info');
                       }}
                       className="px-2.5 py-1 text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 rounded-lg border border-rose-200 hover:border-rose-600 transition-all cursor-pointer shrink-0"
                     >

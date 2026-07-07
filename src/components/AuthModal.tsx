@@ -94,6 +94,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               ? 'Access and sync your NEET study progress across tablet and mobile devices for free.' 
               : 'Sign in to synchronize your study logs and schedules securely.'}
           </p>
+          {isSignUp && (
+            <div className="mt-3.5 px-3 py-2 bg-emerald-50 border border-emerald-100/60 text-emerald-800 rounded-xl text-[10.5px] font-medium leading-relaxed text-left flex items-start gap-1.5">
+              <span className="text-base select-none mt-0.5 leading-none">💡</span>
+              <span>
+                <strong>Onboarding Tip:</strong> You can enter <strong>any email</strong> of your choice (e.g. <code>student@neet.com</code>) and a 6-character password. No email activation or code is required!
+              </span>
+            </div>
+          )}
         </div>
 
         {error && (

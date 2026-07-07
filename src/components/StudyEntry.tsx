@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { BookOpen, CheckCircle, Clock, PlusCircle, Search, Target, Award, ListFilter, Trash2 } from 'lucide-react';
 import { StudyEntry, NEETSubject, StudyType, ConfidenceLevel } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
-import { calculateDuration, generateId, formatDate } from '../utils';
+import { calculateDuration, generateId, formatDate, triggerToast } from '../utils';
 
 interface StudyEntryProps {
   onAddEntry: (entry: Omit<StudyEntry, 'id' | 'accuracy' | 'durationMinutes'>) => void;
@@ -66,7 +66,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry }: S
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chapterQuery.trim()) {
-      alert('Please select or enter a chapter.');
+      triggerToast('Please select or enter a chapter.', 'error');
       return;
     }
 

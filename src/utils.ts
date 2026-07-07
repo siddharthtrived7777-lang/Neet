@@ -115,7 +115,7 @@ export function calculateStreaks(entries: StudyEntry[]): { currentStreak: number
 
 // SPACED REPETITION ENGINE
 // Revision schedules based on stage
-export const REVISION_INTERVALS = [1, 3, 7, 15, 30, 60, 90]; // Days for Rev 1, 2, 3, 4, 5, 6, 7
+export const REVISION_INTERVALS = [1, 3, 5, 7, 14, 21, 30]; // Days for Rev 1, 2, 3, 4, 5, 6, 7
 
 // Automatically generate revisions when first studying a chapter or marking it as Completed
 export function createRevisionSchedule(
@@ -435,3 +435,22 @@ export function getSeedData() {
     revisions: []
   };
 }
+
+declare global {
+  interface Window {
+    showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  }
+}
+
+export function triggerToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
+  if (typeof window !== 'undefined' && window.showToast) {
+    window.showToast(message, type);
+  } else {
+    try {
+      alert(message);
+    } catch {
+      console.log(`[Toast Fallback] ${type.toUpperCase()}: ${message}`);
+    }
+  }
+}
+
