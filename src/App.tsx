@@ -502,7 +502,66 @@ export default function App() {
     const updatedEntries = entries.map(e => e.id === id ? entry : e);
     saveEntries(updatedEntries);
 
-    // D. Apply new stats to chapterStatuses
+    // D. Update revision schedule if chapter/topic changed
+    let updatedRevs = [...revisions];
+    if (entry.studyType === 'Self Study') {
+      if (oldEntry.chapter !== entry.chapter) {
+        // 1. Clean up old revisions if no other Self Study exists for old chapter
+        const hasOtherSelfStudyForOld = updatedEntries.some(e => e.chapter === oldEntry.chapter && e.studyType === 'Self Study' && e.id !== id);
+        if (!hasOtherSelfStudyForOld) {
+          updatedRevs = updatedRevs.filter(r => {
+            if (r.chapterName === oldEntry.chapter && !r.completed) {
+              if (auth.currentUser) {
+                deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
+              }
+              return false;
+            }
+            return true;
+          });
+        }
+
+        // 2. Add or adapt revisions for the new chapter
+        const hasExistingRevsForNew = updatedRevs.some(r => r.chapterName === entry.chapter);
+        if (!hasExistingRevsForNew) {
+          const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic);
+          updatedRevs = [...updatedRevs, ...newSchedule];
+        } else {
+          if (entry.mcqsSolved > 0) {
+            updatedRevs = adaptFutureRevisions(updatedRevs, entry.chapter, 0, accuracy);
+          }
+          if (entry.topic && entry.topic.trim() !== '') {
+            updatedRevs = updatedRevs.map(r => {
+              if (r.chapterName === entry.chapter && !r.completed) {
+                const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
+                if (!currentSubtopics.includes(entry.topic.trim())) {
+                  const combined = [...currentSubtopics, entry.topic.trim()].join(', ');
+                  return { ...r, subtopics: combined };
+                }
+              }
+              return r;
+            });
+          }
+        }
+      } else if (oldEntry.topic !== entry.topic && entry.topic && entry.topic.trim() !== '') {
+        // Same chapter, topic changed. Update subtopics of pending revisions.
+        updatedRevs = updatedRevs.map(r => {
+          if (r.chapterName === entry.chapter && !r.completed) {
+            const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
+            const oldTopicClean = oldEntry.topic ? oldEntry.topic.trim() : '';
+            const filteredSubtopics = currentSubtopics.filter(s => s !== oldTopicClean);
+            if (!filteredSubtopics.includes(entry.topic.trim())) {
+              filteredSubtopics.push(entry.topic.trim());
+            }
+            return { ...r, subtopics: filteredSubtopics.join(', ') };
+          }
+          return r;
+        });
+      }
+    }
+
+    saveRevisions(updatedRevs);
+
+    // E. Apply new stats to chapterStatuses and compute statuses based on revisions
     const finalStatuses = rolledBackStatuses.map(chap => {
       if (chap.chapterName === entry.chapter) {
         const currentHours = chap.totalHours + (entry.durationMinutes / 60);
@@ -516,14 +575,30 @@ export default function App() {
         }
 
         const currentTrends = [...chap.confidenceTrend, entry.confidenceLevel].slice(-5);
+        const nextRevTask = updatedRevs.find(r => r.chapterName === entry.chapter && !r.completed);
+        const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, chap.status);
 
         return {
           ...chap,
           lastStudiedDate: entry.date,
+          status: mappedStatus,
+          nextRevisionDate: nextRevDate,
           totalHours: Number(currentHours.toFixed(2)),
           totalMcqs: currentMcqs,
           averageAccuracy: Number(currentAvgAccuracy.toFixed(2)),
           confidenceTrend: currentTrends
+        };
+      } else if (oldEntry.chapter !== entry.chapter && chap.chapterName === oldEntry.chapter) {
+        // Also update old chapter's revisions mapping & status
+        const nextRevTask = updatedRevs.find(r => r.chapterName === oldEntry.chapter && !r.completed);
+        const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, oldEntry.chapter, chap.status);
+
+        return {
+          ...chap,
+          status: mappedStatus,
+          nextRevisionDate: nextRevDate
         };
       }
       return chap;
@@ -531,7 +606,7 @@ export default function App() {
 
     saveChapterStatuses(finalStatuses);
 
-    // E. Sync to Firebase if authenticated
+    // F. Sync to Firebase if authenticated
     if (auth.currentUser) {
       const uid = auth.currentUser.uid;
       saveStudyEntryCloud(uid, entry);
@@ -541,6 +616,12 @@ export default function App() {
         const oldAffectedStatus = finalStatuses.find(chap => chap.chapterName === oldEntry.chapter);
         if (oldAffectedStatus) saveChapterStatusCloud(uid, oldAffectedStatus);
       }
+      // Sync revised tasks if changed
+      updatedRevs.forEach(rev => {
+        if (rev.chapterName === entry.chapter || (oldEntry.chapter !== entry.chapter && rev.chapterName === oldEntry.chapter)) {
+          saveRevisionTaskCloud(uid, rev);
+        }
+      });
     }
   };
 
@@ -552,21 +633,57 @@ export default function App() {
     const filtered = entries.filter(e => e.id !== id);
     saveEntries(filtered);
 
+    // Rollback revisions
+    let updatedRevs = [...revisions];
+    if (toDelete.studyType === 'Self Study') {
+      const hasOtherSelfStudy = filtered.some(e => e.chapter === toDelete.chapter && e.studyType === 'Self Study');
+      if (!hasOtherSelfStudy) {
+        // Clean up uncompleted revisions
+        updatedRevs = updatedRevs.filter(r => {
+          if (r.chapterName === toDelete.chapter && !r.completed) {
+            if (auth.currentUser) {
+              deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
+            }
+            return false;
+          }
+          return true;
+        });
+        saveRevisions(updatedRevs);
+      }
+    }
+
     // Rollback stats slightly for corresponding chapter status
     const updatedStatuses = chapterStatuses.map(chap => {
       if (chap.chapterName === toDelete.chapter) {
         const remainingHrs = Math.max(0, chap.totalHours - (toDelete.durationMinutes / 60));
         const remainingMcqs = Math.max(0, chap.totalMcqs - toDelete.mcqsSolved);
         
-        // Simple rollback approximation
-        let newAvg = chap.averageAccuracy;
-        if (remainingMcqs === 0) newAvg = 0;
+        let newAvg = 0;
+        if (remainingMcqs > 0) {
+          const totalCorrectBefore = (chap.averageAccuracy * chap.totalMcqs) / 100;
+          const remainingCorrect = Math.max(0, totalCorrectBefore - toDelete.mcqsCorrect);
+          newAvg = (remainingCorrect / remainingMcqs) * 100;
+        }
+
+        // Remove last confidence level trend
+        let updatedTrends = [...chap.confidenceTrend];
+        const lastIdx = updatedTrends.lastIndexOf(toDelete.confidenceLevel);
+        if (lastIdx !== -1) {
+          updatedTrends.splice(lastIdx, 1);
+        }
+
+        const nextRevTask = updatedRevs.find(r => r.chapterName === toDelete.chapter && !r.completed);
+        const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, toDelete.chapter, remainingHrs > 0 ? 'Studying' : 'Not Started');
 
         return {
           ...chap,
+          status: mappedStatus,
+          nextRevisionDate: nextRevDate,
           totalHours: Number(remainingHrs.toFixed(2)),
           totalMcqs: remainingMcqs,
-          averageAccuracy: newAvg
+          averageAccuracy: Number(newAvg.toFixed(2)),
+          confidenceTrend: updatedTrends
         };
       }
       return chap;
