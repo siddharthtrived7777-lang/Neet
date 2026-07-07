@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Flame, Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry } from '../types';
-import { SUBJECT_COLORS } from '../neetData';
+import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
 import { formatDate, addDays, calculateStreaks } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
 
@@ -116,7 +116,7 @@ export default function Dashboard({
         return {
           chapter,
           hours,
-          subject: found?.subject || 'Biology'
+          subject: found?.subject || getChapterSubject(chapter)
         };
       })
       .sort((a, b) => b.hours - a.hours)
@@ -183,7 +183,7 @@ export default function Dashboard({
                     key={task.id}
                     className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
                   >
-                    <div className="space-y-0.5 min-w-0">
+                    <div className="space-y-0.5 min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide ${colors.bg} ${colors.text}`}>
                           {task.subject}
@@ -191,6 +191,11 @@ export default function Dashboard({
                         <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
                       </div>
                       <span className="font-bold text-slate-700 block truncate leading-tight mt-1">{task.chapterName}</span>
+                      {task.subtopics && (
+                        <span className="text-[10px] text-slate-500 italic block truncate mt-0.5" title={task.subtopics}>
+                          Topics: {task.subtopics}
+                        </span>
+                      )}
                     </div>
 
                     <button

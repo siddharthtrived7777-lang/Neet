@@ -594,6 +594,11 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                   <div key={task.id} className="p-2.5 bg-emerald-50/20 border border-emerald-100/40 rounded-xl flex items-center justify-between text-xs">
                     <div className="min-w-0">
                       <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                      {task.subtopics && (
+                        <span className="text-[10px] text-slate-500 italic block truncate">
+                          {task.subtopics}
+                        </span>
+                      )}
                       <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage} • Done {task.completedDate}</span>
                     </div>
                     <div className="shrink-0 text-right">
@@ -649,6 +654,12 @@ function RevisionCard({ rev, onComplete, onForgot, isOverdue }: CardProps) {
         </div>
 
         <h4 className="text-xs font-bold text-slate-800 leading-snug">{rev.chapterName}</h4>
+        
+        {rev.subtopics && (
+          <p className="text-[10px] text-slate-500 italic leading-snug">
+            <span className="font-semibold not-italic text-slate-600">Topics to revise:</span> {rev.subtopics}
+          </p>
+        )}
         
         {isOverdue && (
           <p className="text-[10px] text-rose-600 font-medium flex items-center gap-1">

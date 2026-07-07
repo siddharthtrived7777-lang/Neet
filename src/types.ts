@@ -78,4 +78,5 @@ export interface RevisionTask {
   completed: boolean;
   completedDate: string | null;
   accuracyAtRevision: number | null;
+  subtopics?: string;
 }

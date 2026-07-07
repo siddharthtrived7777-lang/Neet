@@ -26,6 +26,7 @@ import {
   Target
 } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType } from './types';
+import { getChapterSubject } from './neetData';
 import {
   getSeedData,
   createRevisionSchedule,
@@ -69,6 +70,37 @@ import TestTrackerPage from './components/TestTrackerPage';
 import SearchPage from './components/SearchPage';
 import AiInsightsPanel from './components/AiInsightsPanel';
 import TodayFocusPage from './components/TodayFocusPage';
+
+// Helper to fix any previously miscategorized "Basic Maths" entries to Physics
+function normalizeBasicMaths(
+  entries: StudyEntry[],
+  statuses: ChapterStatus[],
+  revisions: RevisionTask[]
+) {
+  let changed = false;
+  const nextEntries = entries.map(e => {
+    if (e.chapter.toLowerCase() === 'basic maths' && e.subject !== 'Physics') {
+      changed = true;
+      return { ...e, subject: 'Physics' as const };
+    }
+    return e;
+  });
+  const nextStatuses = statuses.map(s => {
+    if (s.chapterName.toLowerCase() === 'basic maths' && s.subject !== 'Physics') {
+      changed = true;
+      return { ...s, subject: 'Physics' as const };
+    }
+    return s;
+  });
+  const nextRevisions = revisions.map(r => {
+    if (r.chapterName.toLowerCase() === 'basic maths' && r.subject !== 'Physics') {
+      changed = true;
+      return { ...r, subject: 'Physics' as const };
+    }
+    return r;
+  });
+  return { nextEntries, nextStatuses, nextRevisions, changed };
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -152,19 +184,36 @@ export default function App() {
     } else {
       if (localEntries) {
         initialEntries = JSON.parse(localEntries);
-        setEntries(initialEntries);
       }
       if (localTests) {
         initialTests = JSON.parse(localTests);
-        setTests(initialTests);
       }
       if (localChapterStatuses) {
         initialStatuses = JSON.parse(localChapterStatuses);
-        setChapterStatuses(initialStatuses);
       }
       if (localRevisions) {
         initialRevisions = JSON.parse(localRevisions);
-        setRevisions(initialRevisions);
+      }
+
+      const { nextEntries, nextStatuses, nextRevisions, changed } = normalizeBasicMaths(
+        initialEntries,
+        initialStatuses,
+        initialRevisions
+      );
+
+      initialEntries = nextEntries;
+      initialStatuses = nextStatuses;
+      initialRevisions = nextRevisions;
+
+      setEntries(initialEntries);
+      setTests(initialTests);
+      setChapterStatuses(initialStatuses);
+      setRevisions(initialRevisions);
+
+      if (changed) {
+        localStorage.setItem('neet_study_entries', JSON.stringify(initialEntries));
+        localStorage.setItem('neet_chapter_statuses', JSON.stringify(initialStatuses));
+        localStorage.setItem('neet_revisions', JSON.stringify(initialRevisions));
       }
     }
 
@@ -182,16 +231,32 @@ export default function App() {
             cloudData.tests.length > 0 || 
             cloudData.revisions.length > 0
           ) {
-            // Cloud has existing data, update client states and offline fallback
-            setEntries(cloudData.entries);
-            setTests(cloudData.tests);
-            setChapterStatuses(cloudData.chapterStatuses);
-            setRevisions(cloudData.revisions);
+            const { nextEntries, nextStatuses, nextRevisions, changed } = normalizeBasicMaths(
+              cloudData.entries,
+              cloudData.chapterStatuses,
+              cloudData.revisions
+            );
 
-            localStorage.setItem('neet_study_entries', JSON.stringify(cloudData.entries));
+            // Cloud has existing data, update client states and offline fallback
+            setEntries(nextEntries);
+            setTests(cloudData.tests);
+            setChapterStatuses(nextStatuses);
+            setRevisions(nextRevisions);
+
+            localStorage.setItem('neet_study_entries', JSON.stringify(nextEntries));
             localStorage.setItem('neet_tests', JSON.stringify(cloudData.tests));
-            localStorage.setItem('neet_chapter_statuses', JSON.stringify(cloudData.chapterStatuses));
-            localStorage.setItem('neet_revisions', JSON.stringify(cloudData.revisions));
+            localStorage.setItem('neet_chapter_statuses', JSON.stringify(nextStatuses));
+            localStorage.setItem('neet_revisions', JSON.stringify(nextRevisions));
+
+            if (changed) {
+              // Sync corrected subjects back to cloud!
+              await syncLocalDataToCloud(currentUser.uid, {
+                entries: nextEntries,
+                tests: cloudData.tests,
+                chapterStatuses: nextStatuses,
+                revisions: nextRevisions
+              });
+            }
           } else {
             // Cloud is empty, sync current local state up to Firestore
             // Read from state or local variables to get latest loaded items
@@ -315,15 +380,31 @@ export default function App() {
       return chap;
     });
 
-    // Auto Schedule Spaced Revisions if this is the first study block for this chapter
+    // Auto Schedule Spaced Revisions if this is a Self Study session
     let updatedRevs = [...revisions];
-    if (isFirstTimeStudy) {
-      const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date);
-      updatedRevs = [...updatedRevs, ...newSchedule];
-    } else {
-      // If chapter was studied before, adapt any pending revisions
-      if (entry.mcqsSolved > 0) {
-        updatedRevs = adaptFutureRevisions(updatedRevs, entry.chapter, 0, accuracy);
+    if (entry.studyType === 'Self Study') {
+      const hasExistingRevsForChapter = revisions.some(r => r.chapterName === entry.chapter);
+      if (!hasExistingRevsForChapter) {
+        const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic);
+        updatedRevs = [...updatedRevs, ...newSchedule];
+      } else {
+        // If chapter was studied before, adapt any pending revisions
+        if (entry.mcqsSolved > 0) {
+          updatedRevs = adaptFutureRevisions(updatedRevs, entry.chapter, 0, accuracy);
+        }
+        // Also update subtopics for all existing pending (uncompleted) revisions of this chapter
+        if (entry.topic && entry.topic.trim() !== '') {
+          updatedRevs = updatedRevs.map(r => {
+            if (r.chapterName === entry.chapter && !r.completed) {
+              const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
+              if (!currentSubtopics.includes(entry.topic.trim())) {
+                const combined = [...currentSubtopics, entry.topic.trim()].join(', ');
+                return { ...r, subtopics: combined };
+              }
+            }
+            return r;
+          });
+        }
       }
     }
 
@@ -582,7 +663,7 @@ export default function App() {
       updatedRevs.push({
         id: generateId(),
         chapterName,
-        subject: foundSyllabus?.subject || 'Biology',
+        subject: foundSyllabus?.subject || getChapterSubject(chapterName),
         stage: 1,
         dueDate: addDays(todayStr, 1),
         priority: 'High',

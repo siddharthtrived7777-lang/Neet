@@ -4,7 +4,7 @@
  */
 
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType, PriorityLevel } from './types';
-import { NEET_SYLLABUS } from './neetData';
+import { NEET_SYLLABUS, getChapterSubject } from './neetData';
 
 // Generate unique IDs
 export function generateId(): string {
@@ -121,7 +121,8 @@ export const REVISION_INTERVALS = [1, 3, 5, 7, 14, 21, 30]; // Days for Rev 1, 2
 export function createRevisionSchedule(
   chapterName: string,
   subject: NEETSubject,
-  startDateStr: string
+  startDateStr: string,
+  subtopics?: string
 ): RevisionTask[] {
   return REVISION_INTERVALS.map((days, index) => {
     const stage = index + 1;
@@ -141,7 +142,8 @@ export function createRevisionSchedule(
       priority,
       completed: false,
       completedDate: null,
-      accuracyAtRevision: null
+      accuracyAtRevision: null,
+      subtopics
     };
   });
 }
@@ -173,7 +175,7 @@ export function adaptFutureRevisions(
       updatedRevisions.push({
         id: generateId(),
         chapterName,
-        subject: revisions.find(r => r.chapterName === chapterName)?.subject || 'Biology',
+        subject: revisions.find(r => r.chapterName === chapterName)?.subject || getChapterSubject(chapterName),
         stage: Math.min(completedStage + 1, 7),
         dueDate: addDays(todayStr, 1),
         priority: 'High',

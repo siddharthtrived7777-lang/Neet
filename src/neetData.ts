@@ -13,6 +13,7 @@ export interface SyllabusChapter {
 
 export const NEET_SYLLABUS: SyllabusChapter[] = [
   // --- PHYSICS ---
+  { name: "Basic Maths", subject: "Physics", unit: "Basics" },
   { name: "Mathematical Tools & Vectors", subject: "Physics", unit: "Basics" },
   { name: "Units and Measurements", subject: "Physics", unit: "Mechanics" },
   { name: "Motion in a Straight Line", subject: "Physics", unit: "Mechanics" },
@@ -124,3 +125,38 @@ export const SUBJECT_COLORS = {
     glow: 'shadow-emerald-100',
   }
 };
+
+export function getChapterSubject(chapterName: string): NEETSubject {
+  const nameLower = chapterName.toLowerCase();
+  const found = NEET_SYLLABUS.find(c => c.name.toLowerCase() === nameLower);
+  if (found) return found.subject;
+  
+  if (
+    nameLower.includes('math') || 
+    nameLower.includes('vector') || 
+    nameLower.includes('physics') || 
+    nameLower.includes('mechanic') ||
+    nameLower.includes('motion') ||
+    nameLower.includes('gravitat') ||
+    nameLower.includes('thermodynam') ||
+    nameLower.includes('optics') ||
+    nameLower.includes('electron') ||
+    nameLower.includes('current')
+  ) {
+    return 'Physics';
+  }
+  if (
+    nameLower.includes('chemistry') || 
+    nameLower.includes('chemical') || 
+    nameLower.includes('organic') || 
+    nameLower.includes('acid') || 
+    nameLower.includes('reaction') ||
+    nameLower.includes('compound') ||
+    nameLower.includes('bond') ||
+    nameLower.includes('biomolecule') ||
+    nameLower.includes('equilibrium')
+  ) {
+    return 'Chemistry';
+  }
+  return 'Biology';
+}

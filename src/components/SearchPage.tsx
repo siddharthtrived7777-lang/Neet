@@ -240,9 +240,16 @@ export default function SearchPage({
                       {selectedChapterDetails.revisions
                         .sort((a, b) => a.stage - b.stage)
                         .map(rev => (
-                          <div key={rev.id} className="p-2 bg-slate-50 rounded-lg border border-slate-150 flex items-center justify-between text-xs font-medium">
-                            <span className="text-slate-700">Stage {rev.stage} Review</span>
-                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                          <div key={rev.id} className="p-2 bg-slate-50 rounded-lg border border-slate-150 flex items-center justify-between text-xs font-medium gap-3">
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="text-slate-700 font-bold">Stage {rev.stage} Review</span>
+                              {rev.subtopics && (
+                                <span className="text-[10px] text-slate-500 italic font-normal block truncate" title={rev.subtopics}>
+                                  Topics: {rev.subtopics}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded shrink-0 ${
                               rev.completed
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : 'bg-slate-200 text-slate-600'
