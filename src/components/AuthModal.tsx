@@ -43,6 +43,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         setError('Sign-in popup was closed before completing. Please try again.');
       } else if (err.code === 'auth/operation-not-allowed') {
         setError('Google Sign-In is not enabled in your Firebase console. Please go to Firebase Console > Build > Authentication > Sign-in method, and enable "Google"!');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(`The current domain (${window.location.hostname}) is not whitelisted in your Firebase Console. Please go to Firebase Console > Authentication > Settings > Authorized domains, and add: ${window.location.hostname}`);
       } else {
         setError(err.message || 'An error occurred during Google authentication.');
       }

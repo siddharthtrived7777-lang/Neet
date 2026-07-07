@@ -1,10 +1,10 @@
 {
-  "projectId": "studied-inkwell-dpnh2",
-  "appId": "1:1049697126425:web:73b67213279899d7a98288",
-  "apiKey": "AIzaSyDDtSo5jbomGFHkkYfRYwmwxMmJQN-PzsY",
-  "authDomain": "studied-inkwell-dpnh2.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-neetstudyplanner-fb7b19d5-9ac4-4f66-88ea-ff4d378b731d",
-  "storageBucket": "studied-inkwell-dpnh2.firebasestorage.app",
-  "messagingSenderId": "1049697126425",
-  "measurementId": ""
+  "projectId": "neet-d15b5",
+  "appId": "1:656252851016:web:aa737a7a6943aa793a997d",
+  "apiKey": "AIzaSyCuAx7DBB3zNN76o0mxaGA86z3Nhwy6nyc",
+  "authDomain": "neet-d15b5.firebaseapp.com",
+  "firestoreDatabaseId": "",
+  "storageBucket": "neet-d15b5.firebasestorage.app",
+  "messagingSenderId": "656252851016",
+  "measurementId": "G-8B42NW2Q87"
 }
