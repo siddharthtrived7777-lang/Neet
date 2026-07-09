@@ -44,7 +44,8 @@ import {
   addDays,
   daysBetween,
   triggerToast,
-  calculateStreaks
+  calculateStreaks,
+  REVISION_INTERVALS
 } from './utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -415,32 +416,11 @@ export default function App() {
       return chap;
     });
 
-    // Auto Schedule Spaced Revisions if this is a Self Study session
+    // Auto Schedule Spaced Revisions if this is a Self Study or Revision session
     let updatedRevs = [...revisions];
-    if (entry.studyType === 'Self Study') {
-      const hasExistingRevsForChapter = revisions.some(r => r.chapterName === entry.chapter);
-      if (!hasExistingRevsForChapter) {
-        const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic);
-        updatedRevs = [...updatedRevs, ...newSchedule];
-      } else {
-        // If chapter was studied before, adapt any pending revisions
-        if (entry.mcqsSolved > 0) {
-          updatedRevs = adaptFutureRevisions(updatedRevs, entry.chapter, 0, accuracy);
-        }
-        // Also update subtopics for all existing pending (uncompleted) revisions of this chapter
-        if (entry.topic && entry.topic.trim() !== '') {
-          updatedRevs = updatedRevs.map(r => {
-            if (r.chapterName === entry.chapter && !r.completed) {
-              const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
-              if (!currentSubtopics.includes(entry.topic.trim())) {
-                const combined = [...currentSubtopics, entry.topic.trim()].join(', ');
-                return { ...r, subtopics: combined };
-              }
-            }
-            return r;
-          });
-        }
-      }
+    if (entry.studyType === 'Self Study' || entry.studyType === 'Revision') {
+      const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic, entry.id);
+      updatedRevs = [...updatedRevs, ...newSchedule];
     }
 
     // Determine and set current Chapter Stage/Status based on completed revision stages
@@ -536,15 +516,48 @@ export default function App() {
     const updatedEntries = entries.map(e => e.id === id ? entry : e);
     saveEntries(updatedEntries);
 
-    // D. Update revision schedule if chapter/topic changed
+    // D. Update revision schedule if chapter/topic/date changed
     let updatedRevs = [...revisions];
-    if (entry.studyType === 'Self Study') {
-      if (oldEntry.chapter !== entry.chapter) {
-        // 1. Clean up old revisions if no other Self Study exists for old chapter
-        const hasOtherSelfStudyForOld = updatedEntries.some(e => e.chapter === oldEntry.chapter && e.studyType === 'Self Study' && e.id !== id);
-        if (!hasOtherSelfStudyForOld) {
+    const isNewTypeTracked = entry.studyType === 'Self Study' || entry.studyType === 'Revision';
+    const isOldTypeTracked = oldEntry.studyType === 'Self Study' || oldEntry.studyType === 'Revision';
+
+    if (isOldTypeTracked && !isNewTypeTracked) {
+      // User changed study type from tracked to non-tracked. Delete associated revisions.
+      updatedRevs = updatedRevs.filter(r => {
+        const shouldDelete = r.entryId === id || (!r.entryId && r.chapterName === oldEntry.chapter && !r.completed);
+        if (shouldDelete) {
+          if (auth.currentUser) {
+            deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
+          }
+          return false;
+        }
+        return true;
+      });
+    } else if (isNewTypeTracked) {
+      // Check if we already have tasks for this entryId
+      const hasTasksForEntry = updatedRevs.some(r => r.entryId === id);
+      if (hasTasksForEntry) {
+        // Update all tasks for this entryId based on new chapter, topic, date, etc.
+        updatedRevs = updatedRevs.map(r => {
+          if (r.entryId === id) {
+            const days = REVISION_INTERVALS[r.stage - 1];
+            return {
+              ...r,
+              chapterName: entry.chapter,
+              subject: entry.subject,
+              dueDate: addDays(entry.date, days),
+              subtopics: entry.topic
+            };
+          }
+          return r;
+        });
+      } else {
+        // No existing tasks with this entry ID. Either old data or study type changed to Self Study/Revision.
+        // First delete any legacy uncompleted revisions of old chapter to prevent duplicates if user is changing chapter
+        if (oldEntry.chapter !== entry.chapter) {
           updatedRevs = updatedRevs.filter(r => {
-            if (r.chapterName === oldEntry.chapter && !r.completed) {
+            const shouldDelete = !r.entryId && r.chapterName === oldEntry.chapter && !r.completed;
+            if (shouldDelete) {
               if (auth.currentUser) {
                 deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
               }
@@ -553,43 +566,9 @@ export default function App() {
             return true;
           });
         }
-
-        // 2. Add or adapt revisions for the new chapter
-        const hasExistingRevsForNew = updatedRevs.some(r => r.chapterName === entry.chapter);
-        if (!hasExistingRevsForNew) {
-          const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic);
-          updatedRevs = [...updatedRevs, ...newSchedule];
-        } else {
-          if (entry.mcqsSolved > 0) {
-            updatedRevs = adaptFutureRevisions(updatedRevs, entry.chapter, 0, accuracy);
-          }
-          if (entry.topic && entry.topic.trim() !== '') {
-            updatedRevs = updatedRevs.map(r => {
-              if (r.chapterName === entry.chapter && !r.completed) {
-                const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
-                if (!currentSubtopics.includes(entry.topic.trim())) {
-                  const combined = [...currentSubtopics, entry.topic.trim()].join(', ');
-                  return { ...r, subtopics: combined };
-                }
-              }
-              return r;
-            });
-          }
-        }
-      } else if (oldEntry.topic !== entry.topic && entry.topic && entry.topic.trim() !== '') {
-        // Same chapter, topic changed. Update subtopics of pending revisions.
-        updatedRevs = updatedRevs.map(r => {
-          if (r.chapterName === entry.chapter && !r.completed) {
-            const currentSubtopics = r.subtopics ? r.subtopics.split(', ').map(s => s.trim()) : [];
-            const oldTopicClean = oldEntry.topic ? oldEntry.topic.trim() : '';
-            const filteredSubtopics = currentSubtopics.filter(s => s !== oldTopicClean);
-            if (!filteredSubtopics.includes(entry.topic.trim())) {
-              filteredSubtopics.push(entry.topic.trim());
-            }
-            return { ...r, subtopics: filteredSubtopics.join(', ') };
-          }
-          return r;
-        });
+        // Create new schedule
+        const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic, entry.id);
+        updatedRevs = [...updatedRevs, ...newSchedule];
       }
     }
 
@@ -672,21 +651,18 @@ export default function App() {
 
     // Rollback revisions
     let updatedRevs = [...revisions];
-    if (toDelete.studyType === 'Self Study') {
-      const hasOtherSelfStudy = filtered.some(e => e.chapter === toDelete.chapter && e.studyType === 'Self Study');
-      if (!hasOtherSelfStudy) {
-        // Clean up uncompleted revisions
-        updatedRevs = updatedRevs.filter(r => {
-          if (r.chapterName === toDelete.chapter && !r.completed) {
-            if (auth.currentUser) {
-              deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
-            }
-            return false;
+    if (toDelete.studyType === 'Self Study' || toDelete.studyType === 'Revision') {
+      updatedRevs = updatedRevs.filter(r => {
+        const shouldDelete = r.entryId === id || (!r.entryId && r.chapterName === toDelete.chapter && !r.completed);
+        if (shouldDelete) {
+          if (auth.currentUser) {
+            deleteRevisionTaskCloud(auth.currentUser.uid, r.id);
           }
-          return true;
-        });
-        saveRevisions(updatedRevs);
-      }
+          return false;
+        }
+        return true;
+      });
+      saveRevisions(updatedRevs);
     }
 
     // Rollback stats slightly for corresponding chapter status

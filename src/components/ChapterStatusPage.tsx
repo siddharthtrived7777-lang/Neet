@@ -36,7 +36,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
     let total = chapterStatuses.length;
     let notStarted = 0;
     let studying = 0;
-    let completedPlus = 0; // Completed, Revision 1-4, Mastered
+    let completedPlus = 0; // Only Mastered chapters count as fully completed
     let mastered = 0;
 
     chapterStatuses.forEach(c => {
@@ -45,10 +45,8 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
       else if (c.status === 'Mastered') {
         completedPlus++;
         mastered++;
-      } else if (c.status === 'Completed') {
-        completedPlus++;
       } else {
-        // Revision 1-4 are NOT marked as completed in the syllabus tracker
+        // 'Completed' and 'Revision 1-4' are NOT marked as completed in the syllabus tracker until they reach 'Mastered'
       }
     });
 

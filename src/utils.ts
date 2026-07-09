@@ -166,7 +166,8 @@ export function createRevisionSchedule(
   chapterName: string,
   subject: NEETSubject,
   startDateStr: string,
-  subtopics?: string
+  subtopics?: string,
+  entryId?: string
 ): RevisionTask[] {
   return REVISION_INTERVALS.map((days, index) => {
     const stage = index + 1;
@@ -187,7 +188,8 @@ export function createRevisionSchedule(
       completed: false,
       completedDate: null,
       accuracyAtRevision: null,
-      subtopics
+      subtopics,
+      entryId
     };
   });
 }
