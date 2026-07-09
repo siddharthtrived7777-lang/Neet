@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote } from 'lucide-react';
-import { StudyEntry, ChapterStatus, RevisionTask, TestEntry } from '../types';
+import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check } from 'lucide-react';
+import { StudyEntry, ChapterStatus, RevisionTask, TestEntry, NEETSubject } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
 import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
@@ -63,6 +63,60 @@ export default function Dashboard({
   onQuickCompleteRevision
 }: DashboardProps) {
   const todayStr = useMemo(() => getLogicalTodayDate(), []);
+  const tomorrowStr = useMemo(() => addDays(todayStr, 1), [todayStr]);
+
+  // Load custom goals from localStorage
+  const [customGoals, setCustomGoals] = useState<{ id: string; text: string; completed: boolean; date: string; subject?: NEETSubject }[]>(() => {
+    const local = localStorage.getItem('neet_custom_goals');
+    return local ? JSON.parse(local) : [];
+  });
+
+  const [newGoalText, setNewGoalText] = useState('');
+  const [newGoalSubject, setNewGoalSubject] = useState<NEETSubject | 'General'>('General');
+
+  const saveCustomGoals = (updated: typeof customGoals) => {
+    setCustomGoals(updated);
+    localStorage.setItem('neet_custom_goals', JSON.stringify(updated));
+  };
+
+  const handleAddTomorrowGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalText.trim()) return;
+
+    const newGoal = {
+      id: Math.random().toString(36).substring(2, 11),
+      text: newGoalText.trim(),
+      completed: false,
+      date: tomorrowStr,
+      subject: newGoalSubject === 'General' ? undefined : newGoalSubject
+    };
+
+    saveCustomGoals([...customGoals, newGoal]);
+    setNewGoalText('');
+    setNewGoalSubject('General');
+  };
+
+  const handleToggleGoal = (id: string) => {
+    const updated = customGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+    saveCustomGoals(updated);
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    const updated = customGoals.filter(g => g.id !== id);
+    saveCustomGoals(updated);
+  };
+
+  const todayCustomGoals = useMemo(() => {
+    return customGoals.filter(g => g.date === todayStr);
+  }, [customGoals, todayStr]);
+
+  const tomorrowCustomGoals = useMemo(() => {
+    return customGoals.filter(g => g.date === tomorrowStr);
+  }, [customGoals, tomorrowStr]);
+
+  const tomorrowRevisionTasks = useMemo(() => {
+    return revisions.filter(r => !r.completed && r.dueDate === tomorrowStr);
+  }, [revisions, tomorrowStr]);
 
   // Daily new motivational thoughts based on the calendar date
   const dailyThought = useMemo(() => {
@@ -203,69 +257,268 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Internal Notification Box: "Today's Tasks" checklist */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="w-4.5 h-4.5 text-medical-700" />
-            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Today's Tasks</h2>
-          </div>
-          <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2 py-0.5 rounded-full">
-            {todayRevisionTasks.length} Revision{todayRevisionTasks.length !== 1 ? 's' : ''} Scheduled
-          </span>
-        </div>
-
-        {todayRevisionTasks.length === 0 ? (
-          <div className="text-center py-6 text-slate-400 text-xs flex flex-col justify-center items-center gap-1.5">
-            <CheckSquare className="w-8 h-8 text-slate-200" />
-            <p className="font-medium text-slate-700">All revisions clear for today!</p>
-            <p className="text-[10px] text-slate-400">Great job pacing your spaced repetitions.</p>
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {todayRevisionTasks.map(task => {
-                const colors = SUBJECT_COLORS[task.subject] || SUBJECT_COLORS.Biology;
-                return (
-                  <div
-                    key={task.id}
-                    className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide ${colors.bg} ${colors.text}`}>
-                          {task.subject}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
-                      </div>
-                      <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
-                        <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
-                        {task.subtopics && (
-                          <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
-                            {task.subtopics}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => onQuickCompleteRevision(task.id)}
-                      className="px-3 py-1.5 text-[10px] font-bold text-white bg-medical-700 hover:bg-medical-800 rounded-lg transition-all cursor-pointer shrink-0"
-                    >
-                      Complete
-                    </button>
-                  </div>
-                );
-              })}
+      {/* Tasks & Goals Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Today's Tasks checklist */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="w-4.5 h-4.5 text-medical-700" />
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Today's Tasks</h2>
+              </div>
+              <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2.5 py-0.5 rounded-full">
+                {todayRevisionTasks.length + todayCustomGoals.length} Active
+              </span>
             </div>
+
+            {todayRevisionTasks.length === 0 && todayCustomGoals.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-xs flex flex-col justify-center items-center gap-1.5">
+                <CheckSquare className="w-8 h-8 text-slate-200" />
+                <p className="font-medium text-slate-700">All tasks clear for today!</p>
+                <p className="text-[10px] text-slate-400">Add custom goals for tomorrow or celebrate your free schedule.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 mt-3">
+                {/* Spaced Revisions */}
+                {todayRevisionTasks.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Today's Scheduled Revisions</span>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {todayRevisionTasks.map(task => {
+                        const colors = SUBJECT_COLORS[task.subject] || SUBJECT_COLORS.Biology;
+                        return (
+                          <div
+                            key={task.id}
+                            className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide ${colors.bg} ${colors.text}`}>
+                                  {task.subject}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
+                              </div>
+                              <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
+                                <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                                {task.subtopics && (
+                                  <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
+                                    {task.subtopics}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => onQuickCompleteRevision(task.id)}
+                              className="px-3 py-1.5 text-[10px] font-bold text-white bg-medical-700 hover:bg-medical-800 rounded-lg transition-all cursor-pointer shrink-0"
+                            >
+                              Complete
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Goals */}
+                {todayCustomGoals.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Today's Custom Goals</span>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {todayCustomGoals.map(goal => (
+                        <div
+                          key={goal.id}
+                          className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleGoal(goal.id)}
+                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
+                                goal.completed
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : 'border-slate-300 hover:border-slate-400 bg-white'
+                              }`}
+                            >
+                              {goal.completed && <Check className="w-2.5 h-2.5" />}
+                            </button>
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              {goal.subject && (
+                                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide inline-block ${SUBJECT_COLORS[goal.subject].bg} ${SUBJECT_COLORS[goal.subject].text}`}>
+                                  {goal.subject}
+                                </span>
+                              )}
+                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700'}`}>
+                                {goal.text}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 mt-2">
             <button
               onClick={() => onNavigateToTab('revisions')}
-              className="text-xs text-medical-700 hover:text-medical-800 font-bold flex items-center gap-1.5 pt-2 cursor-pointer"
+              className="text-xs text-medical-700 hover:text-medical-800 font-bold flex items-center gap-1.5 cursor-pointer"
             >
               Open Interactive Revision Dashboard <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-        )}
+        </div>
+
+        {/* Tomorrow's Goal Card */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4.5 h-4.5 text-amber-500" />
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Tomorrow's Goal</h2>
+              </div>
+              <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full">
+                {tomorrowRevisionTasks.length + tomorrowCustomGoals.length} Set
+              </span>
+            </div>
+
+            {/* Quick Add Form */}
+            <form onSubmit={handleAddTomorrowGoal} className="flex gap-2 items-center bg-slate-50 border border-slate-200/70 p-1.5 rounded-xl">
+              <input
+                type="text"
+                value={newGoalText}
+                onChange={(e) => setNewGoalText(e.target.value)}
+                placeholder="Plan custom goal for tomorrow..."
+                className="flex-1 bg-transparent border-none text-xs focus:ring-0 focus:outline-none px-2 text-slate-700 placeholder-slate-400 font-semibold"
+              />
+              <select
+                value={newGoalSubject}
+                onChange={(e) => setNewGoalSubject(e.target.value as NEETSubject | 'General')}
+                className="text-[10px] bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-600 font-bold cursor-pointer outline-none focus:ring-1 focus:ring-medical-500/20"
+              >
+                <option value="General">General</option>
+                <option value="Physics">Physics</option>
+                <option value="Chemistry">Chemistry</option>
+                <option value="Biology">Biology</option>
+              </select>
+              <button
+                type="submit"
+                disabled={!newGoalText.trim()}
+                className="p-1.5 bg-medical-750 text-white rounded-lg hover:bg-medical-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </form>
+
+            {tomorrowRevisionTasks.length === 0 && tomorrowCustomGoals.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-xs flex flex-col justify-center items-center gap-1.5">
+                <Calendar className="w-8 h-8 text-slate-200" />
+                <p className="font-semibold text-slate-700">No goals set for tomorrow yet.</p>
+                <p className="text-[10px] text-slate-400">Add a custom goal above or watch tomorrow's revisions auto-appear!</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
+                {/* Spaced Revisions */}
+                {tomorrowRevisionTasks.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Tomorrow's Spaced Revisions</span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {tomorrowRevisionTasks.map(task => {
+                        const colors = SUBJECT_COLORS[task.subject] || SUBJECT_COLORS.Biology;
+                        return (
+                          <div
+                            key={task.id}
+                            className="p-2.5 bg-indigo-50/10 border border-indigo-100/50 rounded-xl flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide ${colors.bg} ${colors.text}`}>
+                                  {task.subject}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
+                              </div>
+                              <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
+                                <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                              </div>
+                            </div>
+                            <span className="text-[9px] text-indigo-700 bg-indigo-50/60 font-bold px-2 py-0.5 rounded border border-indigo-100/40">
+                              Upcoming
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Goals */}
+                {tomorrowCustomGoals.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Tomorrow's Custom Goals</span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {tomorrowCustomGoals.map(goal => (
+                        <div
+                          key={goal.id}
+                          className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleGoal(goal.id)}
+                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
+                                goal.completed
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : 'border-slate-300 hover:border-slate-400 bg-white'
+                              }`}
+                            >
+                              {goal.completed && <Check className="w-2.5 h-2.5" />}
+                            </button>
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              {goal.subject && (
+                                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded font-mono uppercase tracking-wide inline-block ${SUBJECT_COLORS[goal.subject].bg} ${SUBJECT_COLORS[goal.subject].text}`}>
+                                  {goal.subject}
+                                </span>
+                              )}
+                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700'}`}>
+                                {goal.text}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 mt-2 flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 font-medium">
+              Note: Goals set for tomorrow carry over automatically!
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Today's Focus Insight Card (placed directly below "Today's Tasks" checklist) */}
