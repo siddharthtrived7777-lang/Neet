@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen, Trash2 } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, Clock, Award, ShieldAlert, CheckSquare, Sparkles, Filter, X, TrendingUp, Activity, BarChart2, BookOpen, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { RevisionTask, NEETSubject, PriorityLevel } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
 import { formatDate, addDays, daysBetween, getLogicalTodayDate } from '../utils';
@@ -147,6 +147,55 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
 
     return { overdue, today, tomorrow, next7Days, future, completed };
   }, [revisions, todayStr, filterSubject, filterPriority]);
+
+  // State to track expanded dates for the Next 7 Days section
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+
+  // Group next7Days by date
+  const next7DaysGrouped = useMemo(() => {
+    const groups: Record<string, RevisionTask[]> = {};
+    groupedRevisions.next7Days.forEach(rev => {
+      const dateStr = rev.dueDate;
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(rev);
+    });
+    // Sort dates ascending
+    const sortedDates = Object.keys(groups).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    return sortedDates.map(dateStr => ({
+      dateStr,
+      revisions: groups[dateStr],
+    }));
+  }, [groupedRevisions.next7Days]);
+
+  const isDateExpanded = (dateStr: string) => {
+    if (expandedDates[dateStr] !== undefined) {
+      return expandedDates[dateStr];
+    }
+    // Default to true for the earliest date in the 7 days list, false for others
+    if (next7DaysGrouped.length > 0) {
+      return dateStr === next7DaysGrouped[0].dateStr;
+    }
+    return false;
+  };
+
+  const toggleDateExpanded = (dateStr: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [dateStr]: !isDateExpanded(dateStr)
+    }));
+  };
+
+  const formatFriendlyDate = (dateStr: string) => {
+    try {
+      const dateObj = new Date(dateStr);
+      const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'short', day: 'numeric' };
+      return dateObj.toLocaleDateString('en-US', options);
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   // Handle open completion panel
   const handleOpenComplete = (rev: RevisionTask) => {
@@ -358,16 +407,49 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
             {groupedRevisions.next7Days.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">Clear horizon for the next week.</p>
             ) : (
-              <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
-                {groupedRevisions.next7Days.map(rev => (
-                  <RevisionCard
-                    key={rev.id}
-                    rev={rev}
-                    onComplete={() => handleOpenComplete(rev)}
-                    onForgot={() => onMarkForgot(rev.id)}
-                    onDelete={() => onDeleteRevision(rev.id)}
-                  />
-                ))}
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {next7DaysGrouped.map(({ dateStr, revisions: dateRevs }) => {
+                  const isExpanded = isDateExpanded(dateStr);
+                  return (
+                    <div key={dateStr} className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50/40">
+                      <button
+                        type="button"
+                        onClick={() => toggleDateExpanded(dateStr)}
+                        className="w-full text-left px-3.5 py-2.5 bg-slate-100/60 hover:bg-slate-100 transition-all flex items-center justify-between border-b border-slate-100"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">
+                            {isExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            )}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 tracking-tight">
+                            {formatFriendlyDate(dateStr)}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono font-bold bg-white text-slate-600 border border-slate-200/60 px-1.5 py-0.5 rounded-full shadow-2xs">
+                          {dateRevs.length} {dateRevs.length === 1 ? 'Task' : 'Tasks'}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="p-2.5 space-y-2.5 bg-white">
+                          {dateRevs.map(rev => (
+                            <RevisionCard
+                              key={rev.id}
+                              rev={rev}
+                              onComplete={() => handleOpenComplete(rev)}
+                              onForgot={() => onMarkForgot(rev.id)}
+                              onDelete={() => onDeleteRevision(rev.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
