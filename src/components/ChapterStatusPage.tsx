@@ -45,8 +45,10 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
       else if (c.status === 'Mastered') {
         completedPlus++;
         mastered++;
-      } else {
+      } else if (c.status === 'Completed') {
         completedPlus++;
+      } else {
+        // Revision 1-4 are NOT marked as completed in the syllabus tracker
       }
     });
 
