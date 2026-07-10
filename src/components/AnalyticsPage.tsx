@@ -316,8 +316,8 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
             <svg viewBox="0 0 500 160" className="w-full h-44 overflow-visible">
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0d9488" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#0d9488" stopOpacity="0.0" />
+                  <stop offset="0%" stopColor="#3B5BDB" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#3B5BDB" stopOpacity="0.0" />
                 </linearGradient>
               </defs>
 
@@ -334,7 +334,7 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
 
               {/* Spline Line */}
               {areaChartSvgPath.linePath && (
-                <path d={areaChartSvgPath.linePath} fill="none" stroke="#0d9488" strokeWidth="2.5" />
+                <path d={areaChartSvgPath.linePath} fill="none" stroke="#3B5BDB" strokeWidth="2.5" />
               )}
 
               {/* Nodes */}
@@ -344,8 +344,8 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
                   cx={coord.x}
                   cy={coord.y}
                   r={hoveredPoint?.index === idx ? 6 : 3.5}
-                  fill={hoveredPoint?.index === idx ? '#0d9488' : '#ffffff'}
-                  stroke="#0d9488"
+                  fill={hoveredPoint?.index === idx ? '#3B5BDB' : '#ffffff'}
+                  stroke="#3B5BDB"
                   strokeWidth="2.5"
                   className="cursor-pointer transition-all duration-150"
                   onMouseEnter={() => setHoveredPoint({ date: coord.date, hrs: coord.hours, index: idx })}

@@ -3,26 +3,149 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+:root {
+  /* GLOBAL BASE */
+  --bg-page: #F7F8FA;
+  --bg-card: #FFFFFF;
+  --border-card: #E5E7EB;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --track-progress: #E5E7EB;
+
+  /* ACCENT COLORS */
+  --primary: #3B5BDB;          /* Indigo */
+  --primary-hover: #2F4BC0;    /* Hover State */
+  --accent-agenda: #3B5BDB;    /* Indigo */
+  --accent-revision: #7C3AED;  /* Violet */
+  --accent-coach: #0F9D6D;     /* Teal-green */
+  --accent-mocktest: #D97706;  /* Amber */
+  --accent-drills: #0EA5A4;    /* Cyan-teal */
+  --progress-fill: #0F9D6D;    /* Teal-green */
+  --accent-streak: #D97706;    /* Amber */
+  --danger: #DC2626;           /* Red */
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
+  /* Redefining Tailwind v4 theme colors using our CSS variables */
   --color-medical-50: #eff6ff;
   --color-medical-100: #dbeafe;
   --color-medical-200: #bfdbfe;
-  --color-medical-500: #3b82f6;
-  --color-medical-600: #2563eb;
-  --color-medical-700: #1d4ed8;
-  --color-medical-800: #1e40af;
-  --color-medical-900: #1e3a8a;
-  --color-medical-950: #172554;
+  --color-medical-300: #93c5fd;
+  --color-medical-400: #60a5fa;
+  --color-medical-500: #3B5BDB;
+  --color-medical-600: #2F4BC0;
+  --color-medical-700: #24399A;
+  --color-medical-800: #1e293b;
+  --color-medical-900: #0F162C;
+  --color-medical-950: #030712;
+
+  --color-indigo-50: #eff6ff;
+  --color-indigo-100: #dbeafe;
+  --color-indigo-200: #bfdbfe;
+  --color-indigo-300: #93c5fd;
+  --color-indigo-400: #60a5fa;
+  --color-indigo-500: var(--accent-agenda);
+  --color-indigo-600: var(--accent-agenda);
+  --color-indigo-700: #2F4BC0;
+  --color-indigo-800: #24399A;
+  --color-indigo-900: #0F162C;
+
+  --color-violet-50: #F5F3FF;
+  --color-violet-100: #EDE9FE;
+  --color-violet-200: #DDD6FE;
+  --color-violet-500: var(--accent-revision);
+  --color-violet-600: var(--accent-revision);
+  --color-violet-700: #6D28D9;
+  --color-violet-800: #5B21B6;
+
+  --color-emerald-50: #EFF6FF;
+  --color-emerald-100: #D1FAE5;
+  --color-emerald-500: var(--accent-coach);
+  --color-emerald-600: var(--accent-coach);
+  --color-emerald-700: #0C7B55;
+
+  --color-amber-50: #FFFBEB;
+  --color-amber-100: #FEF3C7;
+  --color-amber-200: #FDE68A;
+  --color-amber-500: var(--accent-mocktest);
+  --color-amber-600: var(--accent-mocktest);
+  --color-amber-700: #B45309;
+
+  --color-red-50: #FEF2F2;
+  --color-red-500: var(--danger);
+  --color-red-600: var(--danger);
+  --color-red-700: #B91C1C;
+
+  --color-rose-50: #FFF1F2;
+  --color-rose-500: var(--danger);
+  --color-rose-600: var(--danger);
+  --color-rose-700: #BE123C;
+
+  --color-cyan-50: #ECFEFF;
+  --color-cyan-100: #CFFAFE;
+  --color-cyan-500: var(--accent-drills);
+  --color-cyan-600: var(--accent-drills);
+  --color-cyan-700: #0E7490;
 }
 
+/* ==========================================
+   GLOBAL BASE STYLING (apply everywhere)
+   ========================================== */
 body {
   font-family: var(--font-sans);
-  background-color: #fafbfb;
-  color: #1e293b;
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Force Card/Panel Backgrounds */
+.bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+/* Force Card/Panel Borders */
+.border-slate-100,
+.border-slate-150,
+.border-slate-200,
+.border-slate-200\/40,
+.border-slate-200\/60,
+.border-slate-200\/80,
+.divide-slate-100 > * + *,
+.divide-slate-200 > * + * {
+  border-color: var(--border-card) !important;
+}
+
+/* Force Primary and Secondary Text Colors */
+.text-slate-800,
+.text-slate-900 {
+  color: var(--text-primary) !important;
+}
+
+.text-slate-500,
+.text-slate-600 {
+  color: var(--text-secondary) !important;
+}
+
+/* Force Progress Bar Track & Fills */
+.w-full.bg-slate-100.rounded-full,
+.w-full.bg-slate-200.rounded-full,
+.bg-slate-200.rounded-full,
+.bg-slate-100.rounded-full,
+div[class*="bg-slate-100"][class*="rounded-full"],
+div[class*="bg-slate-200"][class*="rounded-full"] {
+  background-color: var(--track-progress) !important;
+}
+
+/* Ensure progress fills (any active bar children inside tracks) use progress-fill */
+.rounded-full > [class*="bg-medical-"],
+.rounded-full > [class*="bg-emerald-"],
+.rounded-full > [class*="bg-blue-"],
+.rounded-full > [class*="bg-red-"],
+.rounded-full > [class*="bg-indigo-"] {
+  background-color: var(--progress-fill) !important;
 }
 
 /* Custom scrollbar */
@@ -55,6 +178,150 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ==========================================
+   PANEL-SPECIFIC OVERRIDES & ACCENTS
+   ========================================== */
+
+/* Tomorrow's Agenda panel overrides */
+#tomorrows-goal-card h2,
+#tomorrows-goal-card .text-slate-800 {
+  color: var(--accent-agenda) !important;
+}
+#tomorrows-goal-card svg {
+  color: var(--accent-agenda) !important;
+}
+#tomorrows-goal-card .bg-indigo-50\/10,
+#tomorrows-goal-card .bg-indigo-50\/60 {
+  background-color: #EFF2FE !important;
+}
+#tomorrows-goal-card .border-indigo-100\/50,
+#tomorrows-goal-card .border-indigo-100\/40 {
+  border-color: #DDE2FC !important;
+}
+#tomorrows-goal-card .text-indigo-700,
+#tomorrows-goal-card .text-indigo-600 {
+  color: var(--accent-agenda) !important;
+}
+/* active item checkmarks / check buttons */
+#tomorrows-goal-card button[class*="bg-emerald-500"],
+#tomorrows-goal-card button[class*="border-emerald-500"] {
+  background-color: var(--accent-agenda) !important;
+  border-color: var(--accent-agenda) !important;
+}
+
+/* Revision panel overrides (Violet) */
+#revision-dashboard-section h1,
+#revision-dashboard-section h2,
+#revision-dashboard-section h3 {
+  color: var(--accent-revision) !important;
+}
+#revision-dashboard-section svg {
+  color: var(--accent-revision) !important;
+}
+#revision-dashboard-section .text-indigo-600,
+#revision-dashboard-section .text-indigo-700,
+#revision-dashboard-section .text-indigo-800,
+#revision-dashboard-section .text-medical-600,
+#revision-dashboard-section .text-medical-700 {
+  color: var(--accent-revision) !important;
+}
+#revision-dashboard-section .bg-indigo-600,
+#revision-dashboard-section .bg-indigo-700,
+#revision-dashboard-section .bg-medical-600,
+#revision-dashboard-section .bg-medical-700 {
+  background-color: var(--accent-revision) !important;
+}
+#revision-dashboard-section .hover\:bg-indigo-700:hover,
+#revision-dashboard-section .hover\:bg-medical-700:hover,
+#revision-dashboard-section .hover\:bg-medical-800:hover {
+  background-color: #6D28D9 !important; /* darker violet hover */
+}
+#revision-dashboard-section .bg-indigo-50,
+#revision-dashboard-section .bg-medical-50 {
+  background-color: #F5F3FF !important; /* light violet bg */
+}
+#revision-dashboard-section .border-indigo-100,
+#revision-dashboard-section .border-medical-100 {
+  border-color: #DDD6FE !important; /* light violet border */
+}
+
+/* Mock Test Tracker panel overrides (Amber) */
+#test-tracker-section h1,
+#test-tracker-section h2,
+#test-tracker-section h3 {
+  color: var(--accent-mocktest) !important;
+}
+#test-tracker-section svg {
+  color: var(--accent-mocktest) !important;
+}
+#test-tracker-section .text-medical-600,
+#test-tracker-section .text-medical-700 {
+  color: var(--accent-mocktest) !important;
+}
+#test-tracker-section .bg-medical-600,
+#test-tracker-section .bg-medical-700 {
+  background-color: var(--accent-mocktest) !important;
+}
+#test-tracker-section .hover\:bg-medical-800:hover {
+  background-color: #B45309 !important; /* darker amber hover */
+}
+#test-tracker-section .bg-slate-50,
+#test-tracker-section .bg-slate-50\/50 {
+  background-color: #FFFDF5 !important; /* light warm amber bg */
+}
+#test-tracker-section .border-slate-200 {
+  border-color: #FDE68A !important;
+}
+
+/* MCQ Drills panel overrides (Cyan-teal) */
+#mcq-drills-panel,
+#edit-mcq-drills-panel {
+  background-color: #ECFEFF !important; /* cyan bg */
+  border-color: #A5F3FC !important; /* cyan border */
+}
+#mcq-drills-panel h3,
+#edit-mcq-drills-panel h3,
+#mcq-drills-panel .text-slate-700,
+#edit-mcq-drills-panel .text-slate-700 {
+  color: var(--accent-drills) !important;
+}
+#mcq-drills-panel svg,
+#edit-mcq-drills-panel svg {
+  color: var(--accent-drills) !important;
+}
+#mcq-drills-panel input:focus,
+#edit-mcq-drills-panel input:focus {
+  border-color: var(--accent-drills) !important;
+}
+
+/* Coach and highlights overrides */
+.bg-coach { background-color: var(--accent-coach) !important; }
+.text-coach { color: var(--accent-coach) !important; }
+.border-coach { border-color: var(--accent-coach) !important; }
+
+/* Streak counter overrides */
+.text-amber-600,
+.text-amber-500,
+.text-amber-400 {
+  color: var(--accent-streak) !important;
+}
+.bg-amber-500\/10 {
+  background-color: rgba(217, 119, 6, 0.1) !important;
+}
+.border-amber-500\/30 {
+  border-color: rgba(217, 119, 6, 0.3) !important;
+}
+
+/* Missed / Overdue elements (Red) */
+.text-red-600,
+.text-rose-600 {
+  color: var(--danger) !important;
+}
+.bg-red-600,
+.bg-rose-600 {
+  background-color: var(--danger) !important;
 }
 
 /* ==========================================
@@ -151,7 +418,7 @@ body {
 .dark .text-indigo-600,
 .dark .text-indigo-700,
 .dark .text-indigo-800 {
-  color: #a5b4fc !important; /* indigo-300 */
+  color: #93A5F5 !important; /* medical blue equivalent */
 }
 
 .dark .bg-emerald-50 {
@@ -210,4 +477,3 @@ body {
 .dark .shadow-xl {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
 }
-

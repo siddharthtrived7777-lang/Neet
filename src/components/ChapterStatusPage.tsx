@@ -116,7 +116,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
             </div>
             <div className="w-full bg-slate-100 rounded-full h-3">
               <div
-                className="bg-medical-600 h-3 rounded-full transition-all duration-500"
+                className="bg-emerald-600 h-3 rounded-full transition-all duration-500"
                 style={{ width: `${syllabusStats.completionPercent}%` }}
               />
             </div>
@@ -170,7 +170,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
             placeholder="Search NEET chapter name (e.g. Semiconductor, Cell)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl pl-9 pr-3 py-2 outline-none focus:border-medical-500 focus:bg-white"
+            className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl pl-9 pr-3 py-2 outline-none focus:border-emerald-500 focus:bg-white"
           />
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
         </div>
@@ -179,7 +179,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
           <select
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value as NEETSubject | 'All')}
-            className="w-full md:w-auto bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:border-medical-500 focus:bg-white"
+            className="w-full md:w-auto bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:bg-white"
           >
             <option value="All">All Subjects</option>
             <option value="Physics">Physics</option>
@@ -190,7 +190,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as ChapterStatusType | 'All')}
-            className="w-full md:w-auto bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:border-medical-500 focus:bg-white"
+            className="w-full md:w-auto bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:bg-white"
           >
             <option value="All">All Statuses</option>
             {STATUS_ORDER.map(st => (
@@ -292,7 +292,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
                       <td className="px-5 py-4 text-center">
                         <button
                           onClick={() => onSelectChapter(chap.chapterName)}
-                          className="p-1.5 text-slate-400 hover:text-medical-600 hover:bg-medical-50 rounded-lg transition-all"
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                           title="Open deep search details for this chapter"
                         >
                           <Eye className="w-4 h-4" />

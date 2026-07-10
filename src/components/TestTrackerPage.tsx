@@ -127,7 +127,7 @@ export default function TestTrackerPage({
         <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2.5">
-              <Target className="w-4.5 h-4.5 text-medical-700" /> Log Mock Exam Score
+              <Target className="w-4.5 h-4.5 text-amber-650" /> Log Mock Exam Score
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
@@ -138,7 +138,7 @@ export default function TestTrackerPage({
                   placeholder="e.g. NTA NEET Mock Test 12, Part Syllabus Biology 01..."
                   value={testName}
                   onChange={(e) => setTestName(e.target.value)}
-                  className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-medical-500 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-amber-500 focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -150,7 +150,7 @@ export default function TestTrackerPage({
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   onClick={(e) => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                  className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-medical-500 focus:bg-white h-9.5 cursor-pointer"
+                  className="w-full bg-slate-50 text-slate-700 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-amber-500 focus:bg-white h-9.5 cursor-pointer"
                   required
                 />
               </div>
@@ -165,7 +165,7 @@ export default function TestTrackerPage({
                   max="1000"
                   value={marks}
                   onChange={(e) => setMarks(Number(e.target.value))}
-                  className="w-full bg-slate-50 text-slate-800 text-sm font-mono font-bold border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-medical-500 focus:bg-white"
+                  className="w-full bg-slate-50 text-slate-800 text-sm font-mono font-bold border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>
 
@@ -177,7 +177,7 @@ export default function TestTrackerPage({
                   max="1000"
                   value={outOf}
                   onChange={(e) => setOutOf(Number(e.target.value))}
-                  className="w-full bg-slate-50 text-slate-800 text-sm font-mono font-bold border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-medical-500 focus:bg-white"
+                  className="w-full bg-slate-50 text-slate-800 text-sm font-mono font-bold border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function TestTrackerPage({
                   <select
                     value={subjectFocus}
                     onChange={(e) => setSubjectFocus(e.target.value as NEETSubject)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-medical-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-amber-500"
                   >
                     <option value="Physics">Physics</option>
                     <option value="Chemistry">Chemistry</option>
@@ -219,7 +219,7 @@ export default function TestTrackerPage({
                       handleAddWrongChapter(e.target.value);
                       setTempWrongChapter('');
                     }}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-medical-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-amber-500"
                   >
                     <option value="">-- Choose Chapter --</option>
                     {availableChapters.map(chap => (
@@ -256,7 +256,7 @@ export default function TestTrackerPage({
 
             <button
               type="submit"
-              className="w-full bg-medical-700 text-white hover:bg-medical-800 font-medium rounded-xl text-xs px-4 py-3 text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
+              className="w-full bg-amber-600 text-white hover:bg-amber-700 font-medium rounded-xl text-xs px-4 py-3 text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
             >
               <PlusCircle className="w-4.5 h-4.5" /> Save Mock Result
             </button>
@@ -269,7 +269,7 @@ export default function TestTrackerPage({
           {/* Mock Test Score History */}
           <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 flex flex-col h-[280px]">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-50 pb-2.5">
-              <Award className="w-4 h-4 text-medical-600" /> Mock Scorecard History
+              <Award className="w-4 h-4 text-amber-600" /> Mock Scorecard History
             </h3>
 
             {tests.length === 0 ? (

@@ -133,7 +133,7 @@ export default function TodayFocusPage({
               <div 
                 key={stat.subject}
                 className={`bg-white rounded-2xl p-5 border shadow-sm transition-all flex flex-col justify-between ${
-                  isTarget ? 'ring-2 ring-amber-500/80 border-transparent shadow-md' : 'border-slate-100'
+                  isTarget ? 'ring-2 ring-medical-500/80 border-transparent shadow-md' : 'border-slate-100'
                 }`}
               >
                 <div>
@@ -150,7 +150,7 @@ export default function TodayFocusPage({
                     </div>
 
                     {isTarget && (
-                      <span className="text-[8px] bg-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                      <span className="text-[8px] bg-medical-500 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
                         Focus Area
                       </span>
                     )}
@@ -192,7 +192,7 @@ export default function TodayFocusPage({
       {focusData.primaryFocusSubject && (
         <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-5">
           <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-            <Lightbulb className="text-amber-500 w-5 h-5 shrink-0" />
+            <Lightbulb className="text-medical-500 w-5 h-5 shrink-0" />
             <div>
               <h3 className="text-sm font-bold text-slate-800 leading-tight">Focus Recovery Action Plan: {recommendations.subject}</h3>
               <p className="text-[10px] text-slate-400 font-medium">Auto-generated recommendations from your syllabus track</p>
@@ -216,7 +216,7 @@ export default function TodayFocusPage({
                         <div className="flex flex-wrap items-baseline gap-1.5">
                           <span className="font-bold text-slate-700 block truncate leading-snug">{rev.chapterName}</span>
                           {rev.subtopics && (
-                            <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
+                            <span className="text-[9px] text-medical-600 bg-medical-50 border border-medical-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
                               {rev.subtopics}
                             </span>
                           )}

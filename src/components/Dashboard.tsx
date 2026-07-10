@@ -302,7 +302,7 @@ export default function Dashboard({
                               <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
                                 <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
                                 {task.subtopics && (
-                                  <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
+                                  <span className="text-[9px] text-medical-600 bg-medical-50 border border-medical-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
                                     {task.subtopics}
                                   </span>
                                 )}
@@ -339,7 +339,7 @@ export default function Dashboard({
                               onClick={() => handleToggleGoal(goal.id)}
                               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
                                 goal.completed
-                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  ? 'bg-medical-500 border-medical-500 text-white'
                                   : 'border-slate-300 hover:border-slate-400 bg-white'
                               }`}
                             >
@@ -383,14 +383,14 @@ export default function Dashboard({
         </div>
 
         {/* Tomorrow's Goal Card */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+        <div id="tomorrows-goal-card" className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
           <div className="space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Target className="w-4.5 h-4.5 text-amber-500" />
+                <Target className="w-4.5 h-4.5 text-medical-500" />
                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Tomorrow's Goal</h2>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2.5 py-0.5 rounded-full">
                 {tomorrowRevisionTasks.length + tomorrowCustomGoals.length} Set
               </span>
             </div>
@@ -417,7 +417,7 @@ export default function Dashboard({
               <button
                 type="submit"
                 disabled={!newGoalText.trim()}
-                className="p-1.5 bg-medical-750 text-white rounded-lg hover:bg-medical-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+                className="p-1.5 bg-medical-500 text-white rounded-lg hover:bg-medical-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -441,7 +441,7 @@ export default function Dashboard({
                         return (
                           <div
                             key={task.id}
-                            className="p-2.5 bg-indigo-50/10 border border-indigo-100/50 rounded-xl flex items-center justify-between gap-3 text-xs"
+                            className="p-2.5 bg-medical-50/10 border border-medical-100/50 rounded-xl flex items-center justify-between gap-3 text-xs"
                           >
                             <div className="space-y-0.5 min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -454,7 +454,7 @@ export default function Dashboard({
                                 <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
                               </div>
                             </div>
-                            <span className="text-[9px] text-indigo-700 bg-indigo-50/60 font-bold px-2 py-0.5 rounded border border-indigo-100/40">
+                            <span className="text-[9px] text-medical-700 bg-medical-50/60 font-bold px-2 py-0.5 rounded border border-medical-100/40">
                               Upcoming
                             </span>
                           </div>
@@ -480,7 +480,7 @@ export default function Dashboard({
                               onClick={() => handleToggleGoal(goal.id)}
                               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
                                 goal.completed
-                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  ? 'bg-medical-500 border-medical-500 text-white'
                                   : 'border-slate-300 hover:border-slate-400 bg-white'
                               }`}
                             >

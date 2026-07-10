@@ -419,14 +419,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                   {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                     const isSelected = subject === subj;
-                    let selectedStyles = '';
-                    if (subj === 'Chemistry') {
-                      selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900';
-                    } else if (subj === 'Physics') {
-                      selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900';
-                    } else {
-                      selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900';
-                    }
+                    const selectedStyles = 'bg-medical-100 text-medical-800 border-medical-300 shadow-sm shadow-medical-100 dark:bg-medical-950/40 dark:text-medical-400 dark:border-medical-900';
                     return (
                       <button
                         key={subj}
@@ -602,7 +595,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
             </div>
 
             {/* MCQ Panel (Self study / Revision/ MCQ Practice drills) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
+            <div id="mcq-drills-panel" className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                   <Target className="w-4 h-4 text-medical-600" /> MCQ Drills & Accuracy Tracker
@@ -941,14 +934,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                     <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                       {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                         const isSelected = editSubject === subj;
-                        let selectedStyles = '';
-                        if (subj === 'Chemistry') {
-                          selectedStyles = 'bg-red-100 text-red-800 border-red-300 shadow-sm shadow-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900';
-                        } else if (subj === 'Physics') {
-                          selectedStyles = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm shadow-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900';
-                        } else {
-                          selectedStyles = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm shadow-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900';
-                        }
+                        const selectedStyles = 'bg-medical-100 text-medical-800 border-medical-300 shadow-sm shadow-medical-100 dark:bg-medical-950/40 dark:text-medical-400 dark:border-medical-900';
                         return (
                           <button
                             key={`edit-${subj}`}
@@ -1123,7 +1109,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 </div>
 
                 {/* MCQ Panel */}
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
+                <div id="edit-mcq-drills-panel" className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                     <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                       <Target className="w-4 h-4 text-medical-600" /> MCQ Drills & Accuracy Tracker

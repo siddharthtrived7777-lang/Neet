@@ -332,10 +332,10 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
           <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-medical-600" />
+                <CheckSquare className="w-4 h-4 text-violet-600" />
                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Today's Active Revisions</h2>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-mono font-bold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
                 {groupedRevisions.today.length} Due
               </span>
             </div>
@@ -534,7 +534,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                 </button>
                 <button
                   onClick={handleConfirmComplete}
-                  className="px-4 py-2 bg-medical-700 hover:bg-medical-800 text-white rounded-lg transition-all shadow-sm"
+                  className="px-4 py-2 bg-violet-700 hover:bg-violet-800 text-white rounded-lg transition-all shadow-sm"
                 >
                   Log Completion
                 </button>
@@ -548,7 +548,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
       <div id="spaced-repetition-interval-analysis" className="bg-white border border-slate-100 rounded-2xl p-5 md:p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-medical-600" />
+            <BarChart2 className="w-5 h-5 text-violet-600" />
             <div>
               <h3 className="text-sm font-bold text-slate-800">Spaced Repetition Cognitive Analytics</h3>
               <p className="text-[10px] text-slate-400 font-medium">Analyze learning retention & revision completion schedules over custom windows</p>
@@ -563,7 +563,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                 onClick={() => setSelectedInterval(days)}
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   selectedInterval === days
-                    ? 'bg-white text-medical-700 shadow-xs'
+                    ? 'bg-white text-violet-700 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
                 }`}
               >
@@ -577,7 +577,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Metric 1: Revision Schedule load */}
           <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 flex items-start gap-3">
-            <div className="p-2.5 rounded-lg bg-medical-50 text-medical-600 shrink-0">
+            <div className="p-2.5 rounded-lg bg-violet-50 text-violet-600 shrink-0">
               <Activity className="w-4 h-4" />
             </div>
             <div className="space-y-1 min-w-0">
@@ -587,7 +587,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
               </span>
               <div className="flex items-center gap-1.5 pt-1.5">
                 <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-medical-500 h-full" style={{ width: `${intervalStats.completionRate}%` }}></div>
+                  <div className="bg-violet-500 h-full" style={{ width: `${intervalStats.completionRate}%` }}></div>
                 </div>
                 <span className="text-[9px] font-mono font-bold text-slate-500">{intervalStats.completionRate}% Done</span>
               </div>
@@ -744,7 +744,7 @@ function RevisionCard({ rev, onComplete, onForgot, onDelete, isOverdue }: CardPr
         <div className="flex flex-wrap items-baseline gap-1.5">
           <h4 className="text-xs font-bold text-slate-800 leading-snug">{rev.chapterName}</h4>
           {rev.subtopics && (
-            <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-md px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
+            <span className="text-[10px] text-violet-600 bg-violet-50 border border-violet-100 rounded-md px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${rev.subtopics}`}>
               {rev.subtopics}
             </span>
           )}
@@ -768,7 +768,7 @@ function RevisionCard({ rev, onComplete, onForgot, onDelete, isOverdue }: CardPr
 
         <button
           onClick={onComplete}
-          className="px-3 py-1.5 text-[11px] font-bold text-white bg-medical-700 hover:bg-medical-800 rounded-lg border border-medical-700 hover:border-medical-800 transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+          className="px-3 py-1.5 text-[11px] font-bold text-white bg-violet-700 hover:bg-violet-800 rounded-lg border border-violet-700 hover:border-violet-800 transition-all cursor-pointer flex items-center gap-1 shadow-xs"
         >
           <CheckSquare className="w-3.5 h-3.5" /> Checked
         </button>
