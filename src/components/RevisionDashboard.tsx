@@ -12,7 +12,7 @@ import { formatDate, addDays, daysBetween, getLogicalTodayDate } from '../utils'
 
 interface RevisionDashboardProps {
   revisions: RevisionTask[];
-  onCompleteRevision: (id: string, accuracy: number, mcqsSolved: number, notes: string) => void;
+  onCompleteRevision: (id: string) => void;
   onMarkForgot: (id: string) => void;
   onDeleteRevision: (id: string) => void;
 }
@@ -21,12 +21,6 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
   const [filterSubject, setFilterSubject] = useState<NEETSubject | 'All'>('All');
   const [filterPriority, setFilterPriority] = useState<PriorityLevel | 'All'>('All');
   
-  // State for completing a revision inline
-  const [selectedRevId, setSelectedRevId] = useState<string | null>(null);
-  const [revAccuracy, setRevAccuracy] = useState<number>(85);
-  const [revMcqsSolved, setRevMcqsSolved] = useState<number>(30);
-  const [revNotes, setRevNotes] = useState<string>('');
-
   const todayStr = useMemo(() => getLogicalTodayDate(), []);
   const tomorrowStr = useMemo(() => addDays(todayStr, 1), [todayStr]);
 
@@ -199,17 +193,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
 
   // Handle open completion panel
   const handleOpenComplete = (rev: RevisionTask) => {
-    setSelectedRevId(rev.id);
-    setRevAccuracy(85);
-    setRevMcqsSolved(30);
-    setRevNotes('');
-  };
-
-  const handleConfirmComplete = () => {
-    if (selectedRevId) {
-      onCompleteRevision(selectedRevId, revAccuracy, revMcqsSolved, revNotes);
-      setSelectedRevId(null);
-    }
+    onCompleteRevision(rev.id);
   };
 
   return (
@@ -456,93 +440,6 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
         </div>
 
       </div>
-
-      {/* Completion Dialog / Sheet Modal */}
-      <AnimatePresence>
-        {selectedRevId && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 text-slate-800"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-display font-bold text-base text-slate-800">Complete Revision Study</h3>
-                <button
-                  onClick={() => setSelectedRevId(null)}
-                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-xs">
-                <p className="text-slate-500 leading-relaxed">
-                  Completing this task will automatically generate a corresponding revision study entry in your logs and adapt future spaced-repetition schedules based on your accuracy!
-                </p>
-
-                <div className="space-y-1">
-                  <label className="block font-semibold text-slate-600">MCQs Attempted during Revision</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={revMcqsSolved}
-                    onChange={(e) => setRevMcqsSolved(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none font-mono font-bold text-slate-800"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <label className="font-semibold text-slate-600">Practice Accuracy achieved</label>
-                    <span className="font-mono font-bold text-medical-700">{revAccuracy}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={revAccuracy}
-                    onChange={(e) => setRevAccuracy(Number(e.target.value))}
-                    className="w-full accent-medical-600"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>0% (Poor)</span>
-                    <span>80% (Normal)</span>
-                    <span>100% (Elite)</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-semibold text-slate-600">Revision Notes</label>
-                  <textarea
-                    placeholder="NCERT key formulas reviewed, critical mistakes caught..."
-                    value={revNotes}
-                    onChange={(e) => setRevNotes(e.target.value)}
-                    rows={2}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-2 text-xs font-semibold">
-                <button
-                  onClick={() => setSelectedRevId(null)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmComplete}
-                  className="px-4 py-2 bg-violet-700 hover:bg-violet-800 text-white rounded-lg transition-all shadow-sm"
-                >
-                  Log Completion
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Spaced Repetition Interval Analysis (1, 3, 5, 7 ... 30 Days based) */}
       <div id="spaced-repetition-interval-analysis" className="bg-white border border-slate-100 rounded-2xl p-5 md:p-6 shadow-sm space-y-6">

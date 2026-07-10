@@ -69,6 +69,7 @@ import {
 } from './firebaseService';
 import AuthModal from './components/AuthModal';
 import ExamCountdownModal from './components/ExamCountdownModal';
+import CompleteRevisionModal from './components/CompleteRevisionModal';
 
 // Component imports
 import Dashboard from './components/Dashboard';
@@ -155,6 +156,7 @@ export default function App() {
   // Firebase state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [revisionToComplete, setRevisionToComplete] = useState<RevisionTask | null>(null);
   const [syncing, setSyncing] = useState<boolean>(false);
 
   // Toast notifications state
@@ -715,7 +717,17 @@ export default function App() {
   };
 
   // 3. COMPLETE REVISION TASK
-  const handleCompleteRevision = (id: string, accuracy: number, mcqsSolved: number, notes: string) => {
+  const handleCompleteRevision = (
+    id: string,
+    accuracy: number,
+    mcqsSolved: number,
+    notes: string,
+    startTime: string = '10:00',
+    endTime: string = '11:00',
+    durationMinutes: number = 60,
+    mcqsCorrect: number = 0,
+    mcqsWrong: number = 0
+  ) => {
     const todayStr = formatDate(new Date());
 
     const updatedRevs = revisions.map(rev => {
@@ -737,16 +749,16 @@ export default function App() {
     const simulatedEntry: StudyEntry = {
       id: generateId(),
       date: todayStr,
-      startTime: '10:00',
-      endTime: '11:00',
-      durationMinutes: 60,
+      startTime,
+      endTime,
+      durationMinutes,
       subject: completedTask.subject,
       chapter: completedTask.chapterName,
       topic: `Stage ${completedTask.stage} Spaced Revision`,
       studyType: 'Revision',
       mcqsSolved,
-      mcqsCorrect: Math.round((accuracy / 100) * mcqsSolved),
-      mcqsWrong: mcqsSolved - Math.round((accuracy / 100) * mcqsSolved),
+      mcqsCorrect,
+      mcqsWrong,
       accuracy,
       confidenceLevel: accuracy >= 85 ? 'High' : accuracy >= 65 ? 'Medium' : 'Low',
       notes: notes || `Spaced revision stage ${completedTask.stage} successfully cleared.`
@@ -766,7 +778,7 @@ export default function App() {
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
         const mappedStatus = determineChapterStatusFromRevisions(adaptedRevs, completedTask.chapterName, 'Completed', newEntries);
 
-        const currentHours = chap.totalHours + 1.0; // simulated 1 hour revision
+        const currentHours = chap.totalHours + (durationMinutes / 60); // actual user duration instead of simulated 1 hour
         const currentMcqs = chap.totalMcqs + mcqsSolved;
         let currentAvgAccuracy = chap.averageAccuracy;
 
@@ -809,9 +821,10 @@ export default function App() {
 
   // 4. QUICK COMPLETE REVISION FROM TODAY'S TASKS LIST ON DASHBOARD
   const handleQuickCompleteRevision = (id: string) => {
-    // Quick-logs standard 20 MCQs with 85% accuracy and auto-pushed note
-    handleCompleteRevision(id, 85, 20, 'Checked off quickly from dashboard checklist.');
-    triggerToast('Revision completed quickly with standard feedback (20 MCQs, 85% Accuracy). Spaced calendar shifted!', 'success');
+    const task = revisions.find(r => r.id === id);
+    if (task) {
+      setRevisionToComplete(task);
+    }
   };
 
   // 5. MARK REVISION "I FORGOT" (IMMEDIATE TOMORROW SCHEDULING)
@@ -1369,7 +1382,7 @@ export default function App() {
         {activeTab === 'revisions' && (
           <RevisionDashboard
             revisions={revisions}
-            onCompleteRevision={handleCompleteRevision}
+            onCompleteRevision={handleQuickCompleteRevision}
             onMarkForgot={handleMarkForgot}
             onDeleteRevision={handleDeleteRevision}
           />
@@ -1505,6 +1518,17 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      <CompleteRevisionModal
+        isOpen={revisionToComplete !== null}
+        revision={revisionToComplete}
+        onClose={() => setRevisionToComplete(null)}
+        onConfirm={(id, accuracy, mcqsSolved, notes, startTime, endTime, durationMinutes, mcqsCorrect, mcqsWrong) => {
+          handleCompleteRevision(id, accuracy, mcqsSolved, notes, startTime, endTime, durationMinutes, mcqsCorrect, mcqsWrong);
+          setRevisionToComplete(null);
+          triggerToast('Revision completed successfully!', 'success');
+        }}
+      />
 
       {/* Dynamic Toast System */}
       <AnimatePresence>

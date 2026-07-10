@@ -45,6 +45,40 @@ const NEET_MOTIVATIONAL_THOUGHTS = [
   "A champion is defined not by their wins, but by how they recover from their setbacks. Keep pushing, Aspirant!"
 ];
 
+const SIDDHARTH_GREETINGS = [
+  "Good morning, Siddharth! Ready to make today another masterpiece in your prep?",
+  "Hey Siddharth, hope you're feeling focused! Let's conquer some tough concepts today.",
+  "Welcome back, Siddharth! Consistency is your secret weapon. Keep the streak alive!",
+  "Awesome day to study, Siddharth! Your dream medical seat is built byte by byte, day by day.",
+  "Hello, Siddharth! Let's approach today's NCERT revision with absolute focus and precision.",
+  "Rise and shine, Siddharth! Today is a perfect opportunity to turn your weak topics into strengths.",
+  "Hey Siddharth! Remember, every MCQ solved correctly today is a boost of confidence for the main day.",
+  "Welcome to your study console, Siddharth. Stay resilient, stay curious, and keep pushing!",
+  "Good day, Siddharth! Trust the spaced repetition system; it is designing your ultimate peak memory.",
+  "Hey Siddharth! Let's attack Physics numericals with complete confidence today. You've got this!",
+  "Welcome back, Siddharth. Your daily study hours are the foundation of an incredible future doctor.",
+  "Hello, Siddharth! Step by step, page by page, you are converting your efforts into true mastery.",
+  "Good morning, Siddharth! Push your boundaries today and outdo yesterday's academic self.",
+  "Hey Siddharth! Keep that learning momentum high. Consistency is what separates aspirants from toppers.",
+  "Welcome back, Siddharth! Let's tackle today's goals with high accuracy and a sharp mind.",
+  "Good afternoon, Siddharth! Power through the day; your future self will thank you for today's hustle.",
+  "Hey Siddharth! Make every single revision card count. Your dedication is absolutely inspiring.",
+  "Welcome, Siddharth. Put on your focus cap, clear any distractions, and let's have an elite session.",
+  "Hello, Siddharth! Today is a fresh page. Let's fill it with high-yield concepts and solid active recall.",
+  "Hey Siddharth! Small daily improvements compound into legendary results. Keep believing in yourself!",
+  "Welcome back, Siddharth. The white coat and stethoscope are won in quiet, focused hours like today.",
+  "Good morning, Siddharth! Let's keep your focus sharp and your questions practiced. Let's go!",
+  "Hello, Siddharth! Stay patient with the tough topics; they are just puzzles waiting for you to solve.",
+  "Hey Siddharth! Let's make today's study logs full of productive deep focus. Ready, set, learn!",
+  "Welcome back, Siddharth! Your dedication is the engine of your success. Let's fuel it today.",
+  "Hello, Siddharth! Let's keep the confidence high and the silly mistakes low during today's practice.",
+  "Good day, Siddharth! Your persistence is unmatched. Let's tackle today's scheduled revisions first.",
+  "Hey Siddharth! Let's focus intensely on the high-yield NCERT Biology lines today.",
+  "Welcome back, Siddharth! Another beautiful opportunity to sharpen your knowledge and grow.",
+  "Hello, Siddharth! Let's strive for high-accuracy practice sessions today. Make every option count!",
+  "Superb day to excel, Siddharth! Complete your checklist, log your sessions, and lead the way."
+];
+
 interface DashboardProps {
   entries: StudyEntry[];
   chapterStatuses: ChapterStatus[];
@@ -143,6 +177,12 @@ export default function Dashboard({
   const dailyThought = useMemo(() => {
     const day = new Date().getDate();
     return NEET_MOTIVATIONAL_THOUGHTS[(day - 1) % NEET_MOTIVATIONAL_THOUGHTS.length];
+  }, []);
+
+  // Daily unique greeting for Siddharth
+  const dailyGreeting = useMemo(() => {
+    const day = new Date().getDate();
+    return SIDDHARTH_GREETINGS[(day - 1) % SIDDHARTH_GREETINGS.length];
   }, []);
 
   // Today's Focus Insight
@@ -263,8 +303,8 @@ export default function Dashboard({
           <div className="flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-white" /> NEET Preparation Console
           </div>
-          <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
-            Welcome back, Aspirant.
+          <h1 className="font-display text-xl md:text-2xl font-extrabold tracking-tight">
+            {dailyGreeting}
           </h1>
           <div className="mt-3 bg-white/10 backdrop-blur-md border border-white/15 rounded-xl px-4 py-3 flex items-start gap-3 shadow-inner">
             <Quote className="w-5 h-5 text-amber-300 shrink-0 mt-0.5 opacity-80" />
