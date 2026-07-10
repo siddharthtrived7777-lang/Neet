@@ -23,6 +23,9 @@ const STATUS_ORDER: ChapterStatusType[] = [
   'Revision 2',
   'Revision 3',
   'Revision 4',
+  'Revision 5',
+  'Revision 6',
+  'Revision 7',
   'Mastered'
 ];
 
@@ -46,7 +49,7 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
         completedPlus++;
         mastered++;
       } else {
-        // 'Completed' and 'Revision 1-4' are NOT marked as completed in the syllabus tracker until they reach 'Mastered'
+        // 'Completed' and 'Revision 1-7' are NOT marked as completed in the syllabus tracker until they reach 'Mastered'
       }
     });
 
@@ -81,6 +84,10 @@ export default function ChapterStatusPage({ chapterStatuses, onSelectChapter }: 
       case 'Revision 3':
       case 'Revision 4':
         return 'bg-teal-50 text-teal-700 border-teal-200';
+      case 'Revision 5':
+      case 'Revision 6':
+      case 'Revision 7':
+        return 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200';
       case 'Mastered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold';
       default:

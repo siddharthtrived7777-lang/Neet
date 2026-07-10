@@ -23,6 +23,9 @@ export type ChapterStatusType =
   | 'Revision 2'
   | 'Revision 3'
   | 'Revision 4'
+  | 'Revision 5'
+  | 'Revision 6'
+  | 'Revision 7'
   | 'Mastered';
 
 export type PriorityLevel = 'High' | 'Medium' | 'Low';

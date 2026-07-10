@@ -275,22 +275,33 @@ export function adaptFutureRevisions(
 export function determineChapterStatusFromRevisions(
   revisions: RevisionTask[],
   chapterName: string,
-  baseStatus: ChapterStatusType
+  baseStatus: ChapterStatusType,
+  entries?: StudyEntry[]
 ): ChapterStatusType {
   const chapterRevs = revisions.filter(r => r.chapterName === chapterName);
   const completedCount = chapterRevs.filter(r => r.completed).length;
 
-  if (completedCount === 0) {
+  const manualRevisionCount = entries
+    ? entries.filter(e => e.chapter === chapterName && e.studyType === 'Revision' && !e.topic.includes('Spaced Revision')).length
+    : 0;
+
+  const totalRevisions = completedCount + manualRevisionCount;
+
+  if (totalRevisions === 0) {
     return baseStatus;
-  } else if (completedCount === 1) {
+  } else if (totalRevisions === 1) {
     return 'Revision 1';
-  } else if (completedCount === 2) {
+  } else if (totalRevisions === 2) {
     return 'Revision 2';
-  } else if (completedCount === 3) {
+  } else if (totalRevisions === 3) {
     return 'Revision 3';
-  } else if (completedCount >= 4 && completedCount < 7) {
+  } else if (totalRevisions === 4) {
     return 'Revision 4';
-  } else if (completedCount === 7) {
+  } else if (totalRevisions === 5) {
+    return 'Revision 5';
+  } else if (totalRevisions === 6) {
+    return 'Revision 6';
+  } else if (totalRevisions >= 7) {
     return 'Mastered';
   }
   return 'Completed';

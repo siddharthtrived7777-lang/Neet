@@ -416,9 +416,9 @@ export default function App() {
       return chap;
     });
 
-    // Auto Schedule Spaced Revisions if this is a Self Study or Revision session
+    // Auto Schedule Spaced Revisions if this is a Self Study session
     let updatedRevs = [...revisions];
-    if (entry.studyType === 'Self Study' || entry.studyType === 'Revision') {
+    if (entry.studyType === 'Self Study') {
       const newSchedule = createRevisionSchedule(entry.chapter, entry.subject, entry.date, entry.topic, entry.id);
       updatedRevs = [...updatedRevs, ...newSchedule];
     }
@@ -430,7 +430,7 @@ export default function App() {
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
         
         // Find which base status to map to
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, 'Studying');
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, 'Studying', updatedEntries);
         
         return {
           ...chap,
@@ -518,8 +518,8 @@ export default function App() {
 
     // D. Update revision schedule if chapter/topic/date changed
     let updatedRevs = [...revisions];
-    const isNewTypeTracked = entry.studyType === 'Self Study' || entry.studyType === 'Revision';
-    const isOldTypeTracked = oldEntry.studyType === 'Self Study' || oldEntry.studyType === 'Revision';
+    const isNewTypeTracked = entry.studyType === 'Self Study';
+    const isOldTypeTracked = oldEntry.studyType === 'Self Study';
 
     if (isOldTypeTracked && !isNewTypeTracked) {
       // User changed study type from tracked to non-tracked. Delete associated revisions.
@@ -590,7 +590,7 @@ export default function App() {
         const currentTrends = [...chap.confidenceTrend, entry.confidenceLevel].slice(-5);
         const nextRevTask = updatedRevs.find(r => r.chapterName === entry.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, currentHours > 0 ? 'Studying' : 'Not Started');
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, entry.chapter, currentHours > 0 ? 'Studying' : 'Not Started', updatedEntries);
         const latestDate = getLatestDateForChapter(entry.chapter, updatedEntries);
 
         return {
@@ -607,7 +607,7 @@ export default function App() {
         // Also update old chapter's revisions mapping & status
         const nextRevTask = updatedRevs.find(r => r.chapterName === oldEntry.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, oldEntry.chapter, chap.totalHours > 0 ? 'Studying' : 'Not Started');
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, oldEntry.chapter, chap.totalHours > 0 ? 'Studying' : 'Not Started', updatedEntries);
         const latestDate = getLatestDateForChapter(oldEntry.chapter, updatedEntries);
 
         return {
@@ -651,7 +651,7 @@ export default function App() {
 
     // Rollback revisions
     let updatedRevs = [...revisions];
-    if (toDelete.studyType === 'Self Study' || toDelete.studyType === 'Revision') {
+    if (toDelete.studyType === 'Self Study') {
       updatedRevs = updatedRevs.filter(r => {
         const shouldDelete = r.entryId === id || (!r.entryId && r.chapterName === toDelete.chapter && !r.completed);
         if (shouldDelete) {
@@ -687,7 +687,7 @@ export default function App() {
 
         const nextRevTask = updatedRevs.find(r => r.chapterName === toDelete.chapter && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, toDelete.chapter, remainingHrs > 0 ? 'Studying' : 'Not Started');
+        const mappedStatus = determineChapterStatusFromRevisions(updatedRevs, toDelete.chapter, remainingHrs > 0 ? 'Studying' : 'Not Started', filtered);
         const latestDate = getLatestDateForChapter(toDelete.chapter, filtered);
 
         return {
@@ -764,7 +764,7 @@ export default function App() {
       if (chap.chapterName === completedTask.chapterName) {
         const nextRevTask = adaptedRevs.find(r => r.chapterName === completedTask.chapterName && !r.completed);
         const nextRevDate = nextRevTask ? nextRevTask.dueDate : null;
-        const mappedStatus = determineChapterStatusFromRevisions(adaptedRevs, completedTask.chapterName, 'Completed');
+        const mappedStatus = determineChapterStatusFromRevisions(adaptedRevs, completedTask.chapterName, 'Completed', newEntries);
 
         const currentHours = chap.totalHours + 1.0; // simulated 1 hour revision
         const currentMcqs = chap.totalMcqs + mcqsSolved;
