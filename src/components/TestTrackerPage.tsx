@@ -127,7 +127,7 @@ export default function TestTrackerPage({
         <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2.5">
-              <Target className="w-4.5 h-4.5 text-amber-650" /> Log Mock Exam Score
+              <Target className="w-4.5 h-4.5 text-red-500" /> Log Mock Exam Score
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">

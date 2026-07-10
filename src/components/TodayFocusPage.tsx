@@ -71,7 +71,7 @@ export default function TodayFocusPage({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/50 text-xs font-bold text-amber-400">
-              <Target className="w-3.5 h-3.5 animate-pulse" />
+              <Target className="w-3.5 h-3.5 animate-pulse text-red-500" />
               <span>Syllabus Balance Engine</span>
             </div>
             <h2 className="text-xl md:text-2xl font-display font-black tracking-tight leading-tight">

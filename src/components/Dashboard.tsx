@@ -74,6 +74,27 @@ export default function Dashboard({
   const [newGoalText, setNewGoalText] = useState('');
   const [newGoalSubject, setNewGoalSubject] = useState<NEETSubject | 'General'>('General');
 
+  const [allocationTab, setAllocationTab] = useState<'all' | 'today'>('all');
+
+  // Today's Subject wise breakdown
+  const todaySubjectHrs = useMemo(() => {
+    const mins = { Physics: 0, Chemistry: 0, Biology: 0 };
+    entries.forEach(e => {
+      if (e.date === todayStr) {
+        mins[e.subject] += e.durationMinutes;
+      }
+    });
+    return {
+      Biology: formatMinutesToDecimalHoursNum(mins.Biology),
+      Chemistry: formatMinutesToDecimalHoursNum(mins.Chemistry),
+      Physics: formatMinutesToDecimalHoursNum(mins.Physics)
+    };
+  }, [entries, todayStr]);
+
+  const totalTodaySubjectHrsNum = useMemo(() => {
+    return todaySubjectHrs.Biology + todaySubjectHrs.Chemistry + todaySubjectHrs.Physics;
+  }, [todaySubjectHrs]);
+
   const saveCustomGoals = (updated: typeof customGoals) => {
     setCustomGoals(updated);
     localStorage.setItem('neet_custom_goals', JSON.stringify(updated));
@@ -237,10 +258,10 @@ export default function Dashboard({
   return (
     <div id="dashboard-section" className="space-y-6 animate-fade-in">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-medical-800 via-medical-900 to-medical-950 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#5B5FEF] to-[#7B7FF5] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="space-y-2 z-10 max-w-lg">
-          <div className="flex items-center gap-1.5 text-medical-200 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-medical-300" /> NEET Preparation Console
+          <div className="flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-white" /> NEET Preparation Console
           </div>
           <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
             Welcome back, Aspirant.
@@ -264,10 +285,10 @@ export default function Dashboard({
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <CheckSquare className="w-4.5 h-4.5 text-medical-700" />
+                <CheckSquare className="w-4.5 h-4.5 text-[#5B5FEF]" />
                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Today's Tasks</h2>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-mono font-bold bg-[#5B5FEF]/10 text-[#5B5FEF] px-2.5 py-0.5 rounded-full">
                 {todayRevisionTasks.length + todayCustomGoals.length} Active
               </span>
             </div>
@@ -387,7 +408,7 @@ export default function Dashboard({
           <div className="space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Target className="w-4.5 h-4.5 text-medical-500" />
+                <Target className="w-4.5 h-4.5 text-red-500" />
                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Tomorrow's Goal</h2>
               </div>
               <span className="text-[10px] font-mono font-bold bg-medical-50 text-medical-700 px-2.5 py-0.5 rounded-full">
@@ -524,29 +545,19 @@ export default function Dashboard({
       {/* Today's Focus Insight Card (placed directly below "Today's Tasks" checklist) */}
       <div 
         id="todays-focus-card"
-        className={`rounded-2xl p-4 md:p-5 border transition-all duration-300 ${
-          focusData.isImbalance 
-            ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/40 dark:from-amber-950/20 dark:to-orange-950/10 border-amber-200/60 dark:border-amber-900/40' 
-            : 'bg-gradient-to-r from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 border-emerald-100/60 dark:border-emerald-900/40'
-        }`}
+        className="rounded-2xl p-4 md:p-5 border transition-all duration-300 bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="flex items-start gap-3 min-w-0">
-            <div className={`p-2 rounded-xl mt-0.5 shrink-0 shadow-sm ${
-              focusData.isImbalance 
-                ? 'bg-amber-100/80 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400' 
-                : 'bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
-            }`}>
+            <div className="p-2 rounded-xl mt-0.5 shrink-0 shadow-sm bg-amber-100/80 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400">
               {focusData.isImbalance ? (
-                <Target className="w-4.5 h-4.5 animate-pulse" />
+                <Target className="w-4.5 h-4.5 animate-pulse text-red-500" />
               ) : (
                 <Sparkles className="w-4.5 h-4.5" />
               )}
             </div>
             <div className="space-y-1 min-w-0">
-              <span className={`text-[10px] uppercase tracking-widest font-extrabold ${
-                focusData.isImbalance ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-800 dark:text-emerald-400'
-              }`}>
+              <span className="text-[10px] uppercase tracking-widest font-extrabold text-amber-800 dark:text-amber-400">
                 {focusData.isImbalance ? "Today's Focus Recommendation" : "Weekly Balance Status"}
               </span>
               <p className="text-xs md:text-sm font-semibold text-slate-800 leading-normal">
@@ -557,11 +568,7 @@ export default function Dashboard({
 
           <button
             onClick={() => onNavigateToTab('today-focus')}
-            className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
-              focusData.isImbalance
-                ? 'bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-900/40 shadow-sm'
-                : 'bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/40 shadow-sm'
-            }`}
+            className="text-xs font-bold px-3.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white dark:bg-slate-900 hover:bg-[#5B5FEF]/10 text-[#5B5FEF] border-[#5B5FEF]/30 shadow-sm"
           >
             <Activity className="w-3.5 h-3.5" /> Analyze Balance <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -611,7 +618,7 @@ export default function Dashboard({
                         cy="50"
                         r={36}
                         fill="transparent"
-                        stroke="#3b82f6"
+                        stroke="#2E5FE0"
                         strokeWidth="9"
                         strokeDasharray={`${(todayMetrics.classMins / todayMetrics.studyMins) * 226.195} 226.195`}
                         strokeDashoffset={0}
@@ -628,7 +635,7 @@ export default function Dashboard({
                         cy="50"
                         r={36}
                         fill="transparent"
-                        stroke="#10b981"
+                        stroke="#5B5FEF"
                         strokeWidth="9"
                         strokeDasharray={`${(todayMetrics.selfMins / todayMetrics.studyMins) * 226.195} 226.195`}
                         strokeDashoffset={-(todayMetrics.classMins / todayMetrics.studyMins) * 226.195}
@@ -645,7 +652,7 @@ export default function Dashboard({
                         cy="50"
                         r={36}
                         fill="transparent"
-                        stroke="#f59e0b"
+                        stroke="#E6A317"
                         strokeWidth="9"
                         strokeDasharray={`${(todayMetrics.revMins / todayMetrics.studyMins) * 226.195} 226.195`}
                         strokeDashoffset={-((todayMetrics.classMins + todayMetrics.selfMins) / todayMetrics.studyMins) * 226.195}
@@ -679,21 +686,21 @@ export default function Dashboard({
 
           <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 mt-4">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-blue-500 shrink-0" />
+              <span className="w-2.5 h-2.5 rounded bg-[#2E5FE0] shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Class</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.classMins)}h</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-500 shrink-0" />
+              <span className="w-2.5 h-2.5 rounded bg-[#5B5FEF] shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Self Study</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.selfMins)}h</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-amber-500 shrink-0" />
+              <span className="w-2.5 h-2.5 rounded bg-[#E6A317] shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Revision</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.revMins)}h</span>
@@ -725,48 +732,148 @@ export default function Dashboard({
 
         {/* Subject wise Distribution card */}
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[220px]">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Subject Time Allocation</span>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Subject Time Allocation</span>
+            <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setAllocationTab('all')}
+                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  allocationTab === 'all' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                All Days
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllocationTab('today')}
+                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  allocationTab === 'today' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Today
+              </button>
+            </div>
+          </div>
           
-          <div className="space-y-3.5 py-1">
-            {/* Biology */}
+          <div className="space-y-4">
+            {/* The single multi-colored stacked progress bar */}
             <div>
-              <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
-                <span className="flex items-center gap-1.5 text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Biology</span>
-                <span className="font-mono">{subjectHrs.Biology}h</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div
-                  className="bg-emerald-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Biology / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
-                />
+              <span className="text-[9px] text-slate-400 font-bold block mb-1">
+                {allocationTab === 'all' ? 'All-Time Color Distribution' : "Today's Color Distribution"}
+              </span>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex">
+                {(() => {
+                  const bio = allocationTab === 'all' ? subjectHrs.Biology : todaySubjectHrs.Biology;
+                  const chem = allocationTab === 'all' ? subjectHrs.Chemistry : todaySubjectHrs.Chemistry;
+                  const phys = allocationTab === 'all' ? subjectHrs.Physics : todaySubjectHrs.Physics;
+                  const total = bio + chem + phys;
+                  if (total === 0) {
+                    return <div className="w-full text-[9px] text-slate-400 text-center flex items-center justify-center font-bold">No study logged yet</div>;
+                  }
+                  const bioP = (bio / total) * 100;
+                  const chemP = (chem / total) * 100;
+                  const physP = (phys / total) * 100;
+                  return (
+                    <>
+                      {bioP > 0 && (
+                        <div
+                          className="bg-emerald-500 h-full transition-all duration-300"
+                          style={{ width: `${bioP}%` }}
+                          title={`Biology: ${bioP.toFixed(1)}%`}
+                        />
+                      )}
+                      {chemP > 0 && (
+                        <div
+                          className="bg-red-500 h-full transition-all duration-300"
+                          style={{ width: `${chemP}%` }}
+                          title={`Chemistry: ${chemP.toFixed(1)}%`}
+                        />
+                      )}
+                      {physP > 0 && (
+                        <div
+                          className="bg-blue-500 h-full transition-all duration-300"
+                          style={{ width: `${physP}%` }}
+                          title={`Physics: ${physP.toFixed(1)}%`}
+                        />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
-            {/* Chemistry */}
-            <div>
-              <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
-                <span className="flex items-center gap-1.5 text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" /> Chemistry</span>
-                <span className="font-mono">{subjectHrs.Chemistry}h</span>
+            <div className="space-y-3 py-0.5">
+              {/* Biology */}
+              <div>
+                <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span className="flex items-center gap-1.5 text-emerald-700">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" /> Biology
+                  </span>
+                  <span className="font-mono">
+                    {allocationTab === 'all' ? `${subjectHrs.Biology}h` : `${todaySubjectHrs.Biology}h`}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                  <div
+                    className="bg-emerald-500 h-1.5 rounded-full"
+                    style={{
+                      width: (() => {
+                        const val = allocationTab === 'all' ? subjectHrs.Biology : todaySubjectHrs.Biology;
+                        const total = allocationTab === 'all' ? periodicStats.lifetimeHrsNum : totalTodaySubjectHrsNum;
+                        return `${total > 0 ? (val / total) * 100 : 0}%`;
+                      })()
+                    }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div
-                  className="bg-red-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Chemistry / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Physics */}
-            <div>
-              <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
-                <span className="flex items-center gap-1.5 text-blue-700"><span className="w-2 h-2 rounded-full bg-blue-500" /> Physics</span>
-                <span className="font-mono">{subjectHrs.Physics}h</span>
+              {/* Chemistry */}
+              <div>
+                <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span className="flex items-center gap-1.5 text-red-700">
+                    <span className="w-2 h-2 rounded-full bg-red-500" /> Chemistry
+                  </span>
+                  <span className="font-mono">
+                    {allocationTab === 'all' ? `${subjectHrs.Chemistry}h` : `${todaySubjectHrs.Chemistry}h`}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                  <div
+                    className="bg-red-500 h-1.5 rounded-full"
+                    style={{
+                      width: (() => {
+                        const val = allocationTab === 'all' ? subjectHrs.Chemistry : todaySubjectHrs.Chemistry;
+                        const total = allocationTab === 'all' ? periodicStats.lifetimeHrsNum : totalTodaySubjectHrsNum;
+                        return `${total > 0 ? (val / total) * 100 : 0}%`;
+                      })()
+                    }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div
-                  className="bg-blue-500 h-1.5 rounded-full"
-                  style={{ width: `${periodicStats.lifetimeHrsNum > 0 ? (subjectHrs.Physics / periodicStats.lifetimeHrsNum) * 100 : 0}%` }}
-                />
+
+              {/* Physics */}
+              <div>
+                <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                  <span className="flex items-center gap-1.5 text-blue-700">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" /> Physics
+                  </span>
+                  <span className="font-mono">
+                    {allocationTab === 'all' ? `${subjectHrs.Physics}h` : `${todaySubjectHrs.Physics}h`}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                  <div
+                    className="bg-blue-500 h-1.5 rounded-full"
+                    style={{
+                      width: (() => {
+                        const val = allocationTab === 'all' ? subjectHrs.Physics : todaySubjectHrs.Physics;
+                        const total = allocationTab === 'all' ? periodicStats.lifetimeHrsNum : totalTodaySubjectHrsNum;
+                        return `${total > 0 ? (val / total) * 100 : 0}%`;
+                      })()
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>

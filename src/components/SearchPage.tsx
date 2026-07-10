@@ -196,7 +196,7 @@ export default function SearchPage({
                 </div>
 
                 <div className="bg-slate-50/50 border border-slate-150 p-4 rounded-xl text-center space-y-1">
-                  <Target className="w-4 h-4 text-slate-400 mx-auto" />
+                  <Target className="w-4 h-4 text-red-500 mx-auto" />
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide block">MCQs Attempted</span>
                   <span className="font-mono font-bold text-slate-800 text-sm">{selectedChapterDetails.totalMcqs}</span>
                 </div>
@@ -206,10 +206,10 @@ export default function SearchPage({
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide block">Practice Accuracy</span>
                   <span className={`font-mono font-bold text-sm ${
                     selectedChapterDetails.avgAccuracy >= 90
-                      ? 'text-emerald-600'
+                      ? 'text-[#E6A317]'
                       : selectedChapterDetails.avgAccuracy >= 75
-                      ? 'text-teal-600'
-                      : 'text-amber-600'
+                      ? 'text-[#2BA9B4]'
+                      : 'text-[#F2704F]'
                   }`}>
                     {selectedChapterDetails.totalMcqs > 0 ? `${selectedChapterDetails.avgAccuracy}%` : '—'}
                   </span>
@@ -252,7 +252,7 @@ export default function SearchPage({
                             </div>
                             <span className={`text-[10px] font-mono px-2 py-0.5 rounded shrink-0 ${
                               rev.completed
-                                ? 'bg-emerald-100 text-emerald-800'
+                                ? 'bg-[#2BA9B4]/15 text-[#2BA9B4] border border-[#2BA9B4]/20 font-semibold'
                                 : 'bg-slate-200 text-slate-600'
                             }`}>
                               {rev.completed ? `Done (Acc: ${rev.accuracyAtRevision || '—'}%)` : `Due: ${rev.dueDate}`}

@@ -105,24 +105,24 @@ export const NEET_SYLLABUS: SyllabusChapter[] = [
 export const SUBJECT_COLORS = {
   Physics: {
     bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
+    text: 'text-blue-600',
+    border: 'border-blue-100',
     fill: '#3b82f6',
-    glow: 'shadow-blue-100',
+    glow: 'shadow-blue-50',
   },
   Chemistry: {
     bg: 'bg-red-50',
-    text: 'text-red-700',
-    border: 'border-red-200',
+    text: 'text-red-600',
+    border: 'border-red-100',
     fill: '#ef4444',
-    glow: 'shadow-red-100',
+    glow: 'shadow-red-50',
   },
   Biology: {
     bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
+    text: 'text-emerald-600',
+    border: 'border-emerald-100',
     fill: '#10b981',
-    glow: 'shadow-emerald-100',
+    glow: 'shadow-emerald-50',
   }
 };
 

@@ -35,7 +35,7 @@ export function calculateFocusInsight(entries: StudyEntry[]): FocusInsightResult
     const hrs = e.durationMinutes / 60;
     if (subjects.includes(e.subject)) {
       hoursMap[e.subject] += hrs;
-      if (e.studyType === 'Revision') {
+      if (e.studyType === 'Revision' && e.topic.includes('Spaced Revision')) {
         revisionsMap[e.subject] += 1;
       }
     }

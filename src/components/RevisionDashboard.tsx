@@ -78,7 +78,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
     if (completedInWindow.length > 0) {
       if (avgAccuracy >= 90) {
         retentionScore = "Excellent (Mastery Level)";
-        retentionColor = "text-emerald-700 bg-emerald-50 border-emerald-100";
+        retentionColor = "text-[#8B5CF6] bg-[#8B5CF6]/10 border-[#8B5CF6]/20 font-bold";
       } else if (avgAccuracy >= 80) {
         retentionScore = "Strong (Solid Retentiveness)";
         retentionColor = "text-blue-700 bg-blue-50 border-blue-100";
@@ -233,11 +233,11 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
 
       {/* Spaced Repetition Rules Brief */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl text-xs text-emerald-800 flex items-start gap-2.5">
-          <Award className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 p-3.5 rounded-xl text-xs text-[#8B5CF6] flex items-start gap-2.5">
+          <Award className="w-5 h-5 text-[#8B5CF6] shrink-0 mt-0.5" />
           <div>
             <span className="font-bold block">Excellent accuracy (≥95%)</span>
-            <p className="text-emerald-700/80 mt-0.5">The system automatically delays subsequent revision sessions to optimize study balance.</p>
+            <p className="text-[#8B5CF6]/85 mt-0.5">The system automatically delays subsequent revision sessions to optimize study balance.</p>
           </div>
         </div>
 
@@ -596,7 +596,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
 
           {/* Metric 2: Average Revision Accuracy */}
           <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 flex items-start gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+            <div className="p-2.5 rounded-lg bg-[#8B5CF6]/10 text-[#8B5CF6] shrink-0">
               <TrendingUp className="w-4 h-4" />
             </div>
             <div className="space-y-1 min-w-0">
@@ -678,7 +678,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
             ) : (
               <div className="space-y-2 max-h-[148px] overflow-y-auto pr-1">
                 {intervalStats.completedInWindow.map(task => (
-                  <div key={task.id} className="p-2.5 bg-emerald-50/20 border border-emerald-100/40 rounded-xl flex items-center justify-between text-xs">
+                  <div key={task.id} className="p-2.5 bg-[#8B5CF6]/5 border border-[#8B5CF6]/10 rounded-xl flex items-center justify-between text-xs">
                     <div className="min-w-0">
                       <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
                       {task.subtopics && (
@@ -689,7 +689,7 @@ export default function RevisionDashboard({ revisions, onCompleteRevision, onMar
                       <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage} • Done {task.completedDate}</span>
                     </div>
                     <div className="shrink-0 text-right">
-                      <span className="text-[10px] font-mono font-extrabold text-emerald-600 block leading-tight">{task.accuracyAtRevision}%</span>
+                      <span className="text-[10px] font-mono font-extrabold text-[#8B5CF6] block leading-tight">{task.accuracyAtRevision}%</span>
                       <span className="text-[8px] text-slate-400">Score</span>
                     </div>
                   </div>

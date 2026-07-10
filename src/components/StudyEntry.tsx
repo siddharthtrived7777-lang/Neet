@@ -74,9 +74,9 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
     };
 
     const colorsMap = {
-      Physics: 'text-blue-500 dark:text-blue-400',
-      Chemistry: 'text-red-500 dark:text-red-400',
-      Biology: 'text-emerald-500 dark:text-emerald-400'
+      Physics: 'text-[#2E5FE0] dark:text-[#2E5FE0]/90',
+      Chemistry: 'text-[#F2704F] dark:text-[#F2704F]/90',
+      Biology: 'text-[#E0538C] dark:text-[#E0538C]/90'
     };
 
     const pool = iconsMap[subj];
@@ -401,9 +401,9 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl p-4 text-sm flex items-center gap-3 shadow-sm shadow-emerald-50"
+          className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl p-4 text-sm flex items-center gap-3 shadow-sm shadow-amber-50"
         >
-          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+          <CheckCircle className="w-5 h-5 text-amber-600 shrink-0" />
           <p className="font-medium">{notification}</p>
         </motion.div>
       )}
@@ -419,7 +419,20 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                   {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                     const isSelected = subject === subj;
-                    const selectedStyles = 'bg-medical-100 text-medical-800 border-medical-300 shadow-sm shadow-medical-100 dark:bg-medical-950/40 dark:text-medical-400 dark:border-medical-900';
+                    let btnStyle = '';
+                    if (subj === 'Chemistry') {
+                      btnStyle = isSelected
+                        ? 'bg-red-50 text-red-600 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900 shadow-sm shadow-red-100 font-bold'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-red-50/50 hover:text-red-600 hover:border-red-200';
+                    } else if (subj === 'Biology') {
+                      btnStyle = isSelected
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900 shadow-sm shadow-emerald-100 font-bold'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-emerald-50/50 hover:text-emerald-600 hover:border-emerald-200';
+                    } else { // Physics
+                      btnStyle = isSelected
+                        ? 'bg-blue-50 text-blue-600 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900 shadow-sm shadow-blue-100 font-bold'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200';
+                    }
                     return (
                       <button
                         key={subj}
@@ -429,11 +442,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                           setChapterQuery('');
                           triggerSubjectBurst(subj, e.currentTarget);
                         }}
-                        className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
-                          isSelected
-                            ? selectedStyles
-                            : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-slate-100'
-                        }`}
+                        className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${btnStyle}`}
                       >
                         {subj}
                       </button>
@@ -519,11 +528,11 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
             </div>
 
             {/* Live Duration Indicator */}
-            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs text-slate-600">
-              <span className="flex items-center gap-2 font-medium">
-                <Clock className="w-4 h-4 text-slate-400" /> Live Calculated Duration:
+            <div className="bg-medical-50/50 border border-dashed border-medical-200 rounded-xl p-3 flex items-center justify-between text-xs text-slate-700 animate-pulse">
+              <span className="flex items-center gap-2 font-medium text-medical-600">
+                <Clock className="w-4 h-4 text-medical-500" /> Live Calculated Duration:
               </span>
-              <span className="font-mono font-bold text-slate-800 bg-white px-2 py-1 rounded border border-slate-100">
+              <span className="font-mono font-extrabold text-medical-700 bg-medical-50 px-2 py-1 rounded border border-medical-200">
                 {displayedDuration > 0
                   ? `${Math.floor(displayedDuration / 60)}h ${displayedDuration % 60}m`
                   : '0m (Check End Time)'}
@@ -598,7 +607,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
             <div id="mcq-drills-panel" className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Target className="w-4 h-4 text-medical-600" /> MCQ Drills & Accuracy Tracker
+                  <Target className="w-4 h-4 text-red-500" /> MCQ Drills & Accuracy Tracker
                 </span>
                 <span className="text-[10px] font-mono text-slate-400">Calculates accuracy score</span>
               </div>
@@ -623,12 +632,12 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                     max={mcqsSolved}
                     value={mcqsCorrect}
                     onChange={(e) => handleCorrectChange(Number(e.target.value))}
-                    className="w-full bg-white text-emerald-700 text-xs font-mono font-bold border border-emerald-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-emerald-500"
+                    className="w-full bg-white text-emerald-600 text-xs font-mono font-bold border border-emerald-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold text-rose-500 uppercase tracking-wide mb-1">Wrong</label>
+                  <label className="block text-[10px] font-semibold text-rose-600 uppercase tracking-wide mb-1">Wrong</label>
                   <input
                     type="number"
                     min="0"
@@ -641,7 +650,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                         setMcqsCorrect(mcqsSolved - wrongVal);
                       }
                     }}
-                    className="w-full bg-white text-rose-700 text-xs font-mono font-bold border border-rose-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-rose-500"
+                    className="w-full bg-white text-rose-600 text-xs font-mono font-bold border border-rose-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-rose-500"
                   />
                 </div>
               </div>
@@ -650,11 +659,11 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <div className="flex items-center justify-between text-xs font-semibold px-1 pt-1">
                   <span className="text-slate-500">Practice Score:</span>
                   <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] ${
-                    displayedAccuracy >= 95
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : displayedAccuracy >= 80
-                      ? 'bg-teal-100 text-teal-800'
-                      : 'bg-amber-100 text-amber-800'
+                    displayedAccuracy >= 90
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : displayedAccuracy >= 75
+                      ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
                   }`}>
                     {displayedAccuracy}% Accuracy {displayedAccuracy >= 95 ? '⭐ (Delay Scheduled)' : displayedAccuracy < 80 ? '⚠️ (Accelerated)' : ''}
                   </span>
@@ -675,10 +684,10 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                       className={`py-1.5 px-3 text-xs font-semibold rounded-lg border text-center transition-all ${
                         confidenceLevel === level
                           ? level === 'High'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-400 shadow-sm'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : level === 'Medium'
-                            ? 'bg-blue-50 text-blue-700 border-blue-400 shadow-sm'
-                            : 'bg-rose-50 text-rose-700 border-rose-400 shadow-sm'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
                           : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -783,7 +792,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                                 {dayEntries.length} {dayEntries.length === 1 ? 'Session' : 'Sessions'}
                               </span>
                               {totalSolved > 0 && (
-                                <span className="text-[9px] font-semibold font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-100/50">
+                               <span className="text-[9px] font-semibold font-mono text-medical-600 bg-medical-50 border border-medical-100 px-1.5 py-0.2 rounded">
                                   {totalSolved} MCQs
                                 </span>
                               )}
@@ -934,7 +943,20 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                     <div className="grid grid-cols-3 gap-2 relative overflow-visible">
                       {(['Physics', 'Chemistry', 'Biology'] as NEETSubject[]).map((subj) => {
                         const isSelected = editSubject === subj;
-                        const selectedStyles = 'bg-medical-100 text-medical-800 border-medical-300 shadow-sm shadow-medical-100 dark:bg-medical-950/40 dark:text-medical-400 dark:border-medical-900';
+                        let btnStyle = '';
+                        if (subj === 'Chemistry') {
+                          btnStyle = isSelected
+                            ? 'bg-red-50 text-red-600 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900 shadow-sm shadow-red-100 font-bold'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-red-50/50 hover:text-red-600 hover:border-red-200';
+                        } else if (subj === 'Biology') {
+                          btnStyle = isSelected
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900 shadow-sm shadow-emerald-100 font-bold'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-emerald-50/50 hover:text-emerald-600 hover:border-emerald-200';
+                        } else { // Physics
+                          btnStyle = isSelected
+                            ? 'bg-blue-50 text-blue-600 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900 shadow-sm shadow-blue-100 font-bold'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200';
+                        }
                         return (
                           <button
                             key={`edit-${subj}`}
@@ -944,11 +966,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                               setEditChapterQuery('');
                               triggerSubjectBurst(subj, e.currentTarget);
                             }}
-                            className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
-                              isSelected
-                                ? selectedStyles
-                                : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-slate-100'
-                            }`}
+                            className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${btnStyle}`}
                           >
                             {subj}
                           </button>
@@ -1034,11 +1052,11 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 </div>
 
                 {/* Duration Indicator */}
-                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs text-slate-600">
-                  <span className="flex items-center gap-2 font-medium">
-                    <Clock className="w-4 h-4 text-slate-400" /> Live Recalculated Duration:
+                <div className="bg-medical-50/50 border border-dashed border-medical-200 rounded-xl p-3 flex items-center justify-between text-xs text-slate-700 animate-pulse">
+                  <span className="flex items-center gap-2 font-medium text-medical-600">
+                    <Clock className="w-4 h-4 text-medical-500" /> Live Recalculated Duration:
                   </span>
-                  <span className="font-mono font-bold text-slate-800 bg-white px-2 py-1 rounded border border-slate-100">
+                  <span className="font-mono font-extrabold text-medical-700 bg-medical-50 px-2 py-1 rounded border border-medical-200">
                     {editDisplayedDuration > 0
                       ? `${Math.floor(editDisplayedDuration / 60)}h ${editDisplayedDuration % 60}m`
                       : '0m (Check End Time)'}
@@ -1112,7 +1130,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                 <div id="edit-mcq-drills-panel" className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                     <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Target className="w-4 h-4 text-medical-600" /> MCQ Drills & Accuracy Tracker
+                      <Target className="w-4 h-4 text-red-500" /> MCQ Drills & Accuracy Tracker
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">Recalculates accuracy score</span>
                   </div>
@@ -1137,19 +1155,19 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                         max={editMcqsSolved}
                         value={editMcqsCorrect}
                         onChange={(e) => handleEditCorrectChange(Number(e.target.value))}
-                        className="w-full bg-white text-emerald-700 text-xs font-mono font-bold border border-emerald-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-emerald-500"
+                        className="w-full bg-white text-emerald-600 text-xs font-mono font-bold border border-emerald-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-semibold text-rose-500 uppercase tracking-wide mb-1">Wrong</label>
+                      <label className="block text-[10px] font-semibold text-rose-600 uppercase tracking-wide mb-1">Wrong</label>
                       <input
                         type="number"
                         min="0"
                         max={editMcqsSolved}
                         value={editMcqsWrong}
                         onChange={(e) => handleEditWrongChange(Number(e.target.value))}
-                        className="w-full bg-white text-rose-700 text-xs font-mono font-bold border border-rose-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-rose-500"
+                        className="w-full bg-white text-rose-600 text-xs font-mono font-bold border border-rose-200 rounded-lg px-2 py-1.5 outline-none text-center focus:border-rose-500"
                       />
                     </div>
                   </div>
@@ -1158,11 +1176,11 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                     <div className="flex items-center justify-between text-xs font-semibold px-1 pt-1">
                       <span className="text-slate-500">Practice Score:</span>
                       <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] ${
-                        editDisplayedAccuracy >= 95
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : editDisplayedAccuracy >= 80
-                          ? 'bg-teal-100 text-teal-800'
-                          : 'bg-amber-100 text-amber-800'
+                        editDisplayedAccuracy >= 90
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : editDisplayedAccuracy >= 75
+                          ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}>
                         {editDisplayedAccuracy}% Accuracy {editDisplayedAccuracy >= 95 ? '⭐ (Delay Scheduled)' : editDisplayedAccuracy < 80 ? '⚠️ (Accelerated)' : ''}
                       </span>
@@ -1183,10 +1201,10 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                           className={`py-1.5 px-3 text-xs font-semibold rounded-lg border text-center transition-all ${
                             editConfidenceLevel === level
                               ? level === 'High'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-400 shadow-sm'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : level === 'Medium'
-                                ? 'bg-blue-50 text-blue-700 border-blue-400 shadow-sm'
-                                : 'bg-rose-50 text-rose-700 border-rose-400 shadow-sm'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
                               : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                           }`}
                         >

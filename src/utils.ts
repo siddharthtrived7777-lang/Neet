@@ -281,11 +281,7 @@ export function determineChapterStatusFromRevisions(
   const chapterRevs = revisions.filter(r => r.chapterName === chapterName);
   const completedCount = chapterRevs.filter(r => r.completed).length;
 
-  const manualRevisionCount = entries
-    ? entries.filter(e => e.chapter === chapterName && e.studyType === 'Revision' && !e.topic.includes('Spaced Revision')).length
-    : 0;
-
-  const totalRevisions = completedCount + manualRevisionCount;
+  const totalRevisions = completedCount;
 
   if (totalRevisions === 0) {
     return baseStatus;
