@@ -37,6 +37,17 @@ interface StudyEntryProps {
   onEditEntry: (id: string, entry: StudyEntry) => void;
 }
 
+function formatTo12Hour(time24: string): string {
+  if (!time24) return '';
+  const [hourStr, minStr] = time24.split(':');
+  const hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return time24;
+  const min = minStr || '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12}:${min} ${ampm}`;
+}
+
 export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onEditEntry }: StudyEntryProps) {
   // --- ADD FORM STATE ---
   const [burstParticles, setBurstParticles] = useState<{
@@ -155,11 +166,11 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
   const groupedEntries = useMemo(() => {
     const groups: Record<string, StudyEntry[]> = {};
     
-    // Sort entries descending by date & time
+    // Sort entries descending by date & ascending by time
     const sorted = [...entries].sort((a, b) => {
       const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateCompare !== 0) return dateCompare;
-      return b.startTime.localeCompare(a.startTime);
+      return a.startTime.localeCompare(b.startTime);
     });
     
     sorted.forEach(entry => {
@@ -822,7 +833,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
                                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${clr.bg} ${clr.text}`}>
                                         {entry.subject}
                                       </span>
-                                      <span className="text-[9px] font-mono text-slate-400 font-semibold">{entry.startTime} - {entry.endTime}</span>
+                                      <span className="text-[9px] font-mono text-slate-400 font-semibold">{formatTo12Hour(entry.startTime)} - {formatTo12Hour(entry.endTime)}</span>
                                     </div>
                                     <h3 className="text-xs font-bold text-slate-800 leading-tight mt-1">{entry.chapter}</h3>
                                     {entry.topic && (
