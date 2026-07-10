@@ -311,7 +311,7 @@ export default function Dashboard({
                         return (
                           <div
                             key={task.id}
-                            className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                            className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-3 text-xs"
                           >
                             <div className="space-y-0.5 min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -321,9 +321,9 @@ export default function Dashboard({
                                 <span className="text-[9px] text-slate-400 font-mono">Stage {task.stage}</span>
                               </div>
                               <div className="flex flex-wrap items-baseline gap-1.5 mt-1">
-                                <span className="font-bold text-slate-700 block truncate leading-tight">{task.chapterName}</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-200 block truncate leading-tight">{task.chapterName}</span>
                                 {task.subtopics && (
-                                  <span className="text-[9px] text-medical-600 bg-medical-50 border border-medical-100 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
+                                  <span className="text-[9px] text-medical-600 dark:text-medical-400 bg-medical-50 dark:bg-medical-950/40 border border-medical-100 dark:border-medical-900/40 rounded px-1.5 py-0.5 font-medium leading-none" title={`Topics: ${task.subtopics}`}>
                                     {task.subtopics}
                                   </span>
                                 )}
@@ -333,7 +333,7 @@ export default function Dashboard({
                             <button
                               type="button"
                               onClick={() => onQuickCompleteRevision(task.id)}
-                              className="px-3 py-1.5 text-[10px] font-bold text-white bg-medical-700 hover:bg-medical-800 rounded-lg transition-all cursor-pointer shrink-0"
+                              className="px-3 py-1.5 text-[10px] font-bold text-white bg-medical-700 hover:bg-medical-800 dark:bg-medical-600 dark:hover:bg-medical-500 rounded-lg transition-all cursor-pointer shrink-0 shadow-sm"
                             >
                               Complete
                             </button>
@@ -352,7 +352,7 @@ export default function Dashboard({
                       {todayCustomGoals.map(goal => (
                         <div
                           key={goal.id}
-                          className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                          className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <button
@@ -361,7 +361,7 @@ export default function Dashboard({
                               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
                                 goal.completed
                                   ? 'bg-medical-500 border-medical-500 text-white'
-                                  : 'border-slate-300 hover:border-slate-400 bg-white'
+                                  : 'border-slate-300 hover:border-slate-400 bg-white dark:bg-slate-950 dark:border-slate-800'
                               }`}
                             >
                               {goal.completed && <Check className="w-2.5 h-2.5" />}
@@ -372,7 +372,7 @@ export default function Dashboard({
                                   {goal.subject}
                                 </span>
                               )}
-                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700'}`}>
+                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700 dark:text-slate-200'}`}>
                                 {goal.text}
                               </span>
                             </div>
@@ -380,9 +380,9 @@ export default function Dashboard({
                           <button
                             type="button"
                             onClick={() => handleDeleteGoal(goal.id)}
-                            className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                            className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
@@ -493,7 +493,7 @@ export default function Dashboard({
                       {tomorrowCustomGoals.map(goal => (
                         <div
                           key={goal.id}
-                          className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 text-xs"
+                          className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <button
@@ -502,7 +502,7 @@ export default function Dashboard({
                               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
                                 goal.completed
                                   ? 'bg-medical-500 border-medical-500 text-white'
-                                  : 'border-slate-300 hover:border-slate-400 bg-white'
+                                  : 'border-slate-300 hover:border-slate-400 bg-white dark:bg-slate-950 dark:border-slate-800'
                               }`}
                             >
                               {goal.completed && <Check className="w-2.5 h-2.5" />}
@@ -513,7 +513,7 @@ export default function Dashboard({
                                   {goal.subject}
                                 </span>
                               )}
-                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700'}`}>
+                              <span className={`font-semibold block truncate leading-tight ${goal.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700 dark:text-slate-200'}`}>
                                 {goal.text}
                               </span>
                             </div>
@@ -521,9 +521,9 @@ export default function Dashboard({
                           <button
                             type="button"
                             onClick={() => handleDeleteGoal(goal.id)}
-                            className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                            className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
