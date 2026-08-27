@@ -30,6 +30,9 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
     let todayClassMins = 0;
     let todaySelfMins = 0;
     let todayRevMins = 0;
+    let todayPyqMins = 0;
+    let todayMcqPracticeMins = 0;
+    let todayTestAnalysisMins = 0;
     let todayMcqs = 0;
     let todayCorrect = 0;
 
@@ -48,6 +51,9 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
         if (e.studyType === 'Class') todayClassMins += e.durationMinutes;
         else if (e.studyType === 'Self Study') todaySelfMins += e.durationMinutes;
         else if (e.studyType === 'Revision') todayRevMins += e.durationMinutes;
+        else if (e.studyType === 'PYQ') todayPyqMins += e.durationMinutes;
+        else if (e.studyType === 'MCQ Practice') todayMcqPracticeMins += e.durationMinutes;
+        else if (e.studyType === 'Test Analysis') todayTestAnalysisMins += e.durationMinutes;
 
         todayMcqs += e.mcqsSolved;
         todayCorrect += e.mcqsCorrect;
@@ -64,6 +70,9 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
       todayClassMins,
       todaySelfMins,
       todayRevMins,
+      todayPyqMins,
+      todayMcqPracticeMins,
+      todayTestAnalysisMins,
       todayMcqs,
       todayAccuracy,
       weekMins,
@@ -73,6 +82,9 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
       todayClassHrsStr: formatMinutesToDecimalHours(todayClassMins),
       todaySelfHrsStr: formatMinutesToDecimalHours(todaySelfMins),
       todayRevHrsStr: formatMinutesToDecimalHours(todayRevMins),
+      todayPyqHrsStr: formatMinutesToDecimalHours(todayPyqMins),
+      todayMcqPracticeHrsStr: formatMinutesToDecimalHours(todayMcqPracticeMins),
+      todayTestAnalysisHrsStr: formatMinutesToDecimalHours(todayTestAnalysisMins),
       weekHrsStr: formatMinutesToDecimalHours(weekMins),
       monthHrsStr: formatMinutesToDecimalHours(monthMins),
       lifetimeHrsStr: formatMinutesToDecimalHours(lifetimeMins)
@@ -263,8 +275,8 @@ export default function AnalyticsPage({ entries, chapterStatuses }: AnalyticsPag
             <span className="text-2xl font-mono font-extrabold text-slate-800">{stats.todayHrsStr}</span>
             <span className="text-xs text-slate-500">hours</span>
           </div>
-          <p className="text-[10px] text-slate-500">
-            Class: {stats.todayClassHrsStr}h • Self: {stats.todaySelfHrsStr}h
+          <p className="text-[9px] text-slate-500 leading-relaxed">
+            Class: {stats.todayClassHrsStr} • Self: {stats.todaySelfHrsStr} • Rev: {stats.todayRevHrsStr} • PYQ: {stats.todayPyqHrsStr} • Prac: {stats.todayMcqPracticeHrsStr} • Anal: {stats.todayTestAnalysisHrsStr}
           </p>
         </div>
 

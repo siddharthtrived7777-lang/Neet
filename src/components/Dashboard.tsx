@@ -196,6 +196,9 @@ export default function Dashboard({
     let classMins = 0;
     let selfMins = 0;
     let revMins = 0;
+    let pyqMins = 0;
+    let mcqPracticeMins = 0;
+    let testAnalysisMins = 0;
     let mcqs = 0;
     let correct = 0;
 
@@ -205,6 +208,9 @@ export default function Dashboard({
         if (e.studyType === 'Class') classMins += e.durationMinutes;
         else if (e.studyType === 'Self Study') selfMins += e.durationMinutes;
         else if (e.studyType === 'Revision') revMins += e.durationMinutes;
+        else if (e.studyType === 'PYQ') pyqMins += e.durationMinutes;
+        else if (e.studyType === 'MCQ Practice') mcqPracticeMins += e.durationMinutes;
+        else if (e.studyType === 'Test Analysis') testAnalysisMins += e.durationMinutes;
 
         mcqs += e.mcqsSolved;
         correct += e.mcqsCorrect;
@@ -218,10 +224,16 @@ export default function Dashboard({
       classMins,
       selfMins,
       revMins,
+      pyqMins,
+      mcqPracticeMins,
+      testAnalysisMins,
       studyHrsNum: formatMinutesToDecimalHoursNum(studyMins),
       classHrsNum: formatMinutesToDecimalHoursNum(classMins),
       selfHrsNum: formatMinutesToDecimalHoursNum(selfMins),
       revHrsNum: formatMinutesToDecimalHoursNum(revMins),
+      pyqHrsNum: formatMinutesToDecimalHoursNum(pyqMins),
+      mcqPracticeHrsNum: formatMinutesToDecimalHoursNum(mcqPracticeMins),
+      testAnalysisHrsNum: formatMinutesToDecimalHoursNum(testAnalysisMins),
       mcqs,
       accuracy
     };
@@ -651,57 +663,38 @@ export default function Dashboard({
                 />
                 {todayMetrics.studyMins > 0 ? (
                   <>
-                    {/* Class segment */}
-                    {todayMetrics.classMins > 0 && (
-                      <motion.circle
-                        cx="50"
-                        cy="50"
-                        r={36}
-                        fill="transparent"
-                        stroke="#2E5FE0"
-                        strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.classMins / todayMetrics.studyMins) * 226.195} 226.195`}
-                        strokeDashoffset={0}
-                        strokeLinecap="round"
-                        initial={{ strokeDashoffset: 226.195 }}
-                        animate={{ strokeDashoffset: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    )}
-                    {/* Self Study segment */}
-                    {todayMetrics.selfMins > 0 && (
-                      <motion.circle
-                        cx="50"
-                        cy="50"
-                        r={36}
-                        fill="transparent"
-                        stroke="#5B5FEF"
-                        strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.selfMins / todayMetrics.studyMins) * 226.195} 226.195`}
-                        strokeDashoffset={-(todayMetrics.classMins / todayMetrics.studyMins) * 226.195}
-                        strokeLinecap="round"
-                        initial={{ strokeDashoffset: 226.195 }}
-                        animate={{ strokeDashoffset: -(todayMetrics.classMins / todayMetrics.studyMins) * 226.195 }}
-                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-                      />
-                    )}
-                    {/* Revision segment */}
-                    {todayMetrics.revMins > 0 && (
-                      <motion.circle
-                        cx="50"
-                        cy="50"
-                        r={36}
-                        fill="transparent"
-                        stroke="#E6A317"
-                        strokeWidth="9"
-                        strokeDasharray={`${(todayMetrics.revMins / todayMetrics.studyMins) * 226.195} 226.195`}
-                        strokeDashoffset={-((todayMetrics.classMins + todayMetrics.selfMins) / todayMetrics.studyMins) * 226.195}
-                        strokeLinecap="round"
-                        initial={{ strokeDashoffset: 226.195 }}
-                        animate={{ strokeDashoffset: -((todayMetrics.classMins + todayMetrics.selfMins) / todayMetrics.studyMins) * 226.195 }}
-                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-                      />
-                    )}
+                    {[
+                      { mins: todayMetrics.classMins, color: "#2E5FE0", delay: 0 },
+                      { mins: todayMetrics.selfMins, color: "#5B5FEF", delay: 0.1 },
+                      { mins: todayMetrics.revMins, color: "#E6A317", delay: 0.2 },
+                      { mins: todayMetrics.pyqMins, color: "#10B981", delay: 0.3 },
+                      { mins: todayMetrics.mcqPracticeMins, color: "#EC4899", delay: 0.4 },
+                      { mins: todayMetrics.testAnalysisMins, color: "#EF4444", delay: 0.5 },
+                    ].reduce((acc, segment) => {
+                      if (segment.mins <= 0) return acc;
+                      const offset = -acc.accumulatedMins / todayMetrics.studyMins * 226.195;
+                      const strokeDash = (segment.mins / todayMetrics.studyMins) * 226.195;
+                      
+                      acc.elements.push(
+                        <motion.circle
+                          key={segment.color}
+                          cx="50"
+                          cy="50"
+                          r={36}
+                          fill="transparent"
+                          stroke={segment.color}
+                          strokeWidth="9"
+                          strokeDasharray={`${strokeDash} 226.195`}
+                          strokeDashoffset={offset}
+                          strokeLinecap="round"
+                          initial={{ strokeDashoffset: 226.195 }}
+                          animate={{ strokeDashoffset: offset }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: segment.delay }}
+                        />
+                      );
+                      acc.accumulatedMins += segment.mins;
+                      return acc;
+                    }, { elements: [] as React.ReactNode[], accumulatedMins: 0 }).elements}
                   </>
                 ) : (
                   <circle
@@ -724,26 +717,47 @@ export default function Dashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 mt-4">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-[#2E5FE0] shrink-0" />
+          <div className="grid grid-cols-3 gap-y-2.5 gap-x-1.5 border-t border-slate-100 pt-3 text-[10px] text-slate-500 mt-4">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#2E5FE0] shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Class</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.classMins)}h</span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-[#5B5FEF] shrink-0" />
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#5B5FEF] shrink-0" />
               <div className="truncate">
-                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Self Study</span>
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide font-medium">Self</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.selfMins)}h</span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded bg-[#E6A317] shrink-0" />
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#E6A317] shrink-0" />
               <div className="truncate">
                 <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Revision</span>
                 <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.revMins)}h</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#10B981] shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">PYQ</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.pyqMins)}h</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#EC4899] shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Practice</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.mcqPracticeMins)}h</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="w-2 h-2 rounded bg-[#EF4444] shrink-0" />
+              <div className="truncate">
+                <span className="block text-[8px] text-slate-400 uppercase tracking-wide">Analysis</span>
+                <span className="font-bold text-slate-700 font-mono">{formatMinutesToDecimalHours(todayMetrics.testAnalysisMins)}h</span>
               </div>
             </div>
           </div>

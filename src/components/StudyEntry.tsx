@@ -24,11 +24,16 @@ import {
   Dna,
   Zap,
   Droplet,
-  Leaf
+  Leaf,
+  Timer,
+  Play,
+  Sparkles,
+  Maximize2
 } from 'lucide-react';
 import { StudyEntry, NEETSubject, StudyType, ConfidenceLevel } from '../types';
 import { NEET_SYLLABUS, SUBJECT_COLORS } from '../neetData';
 import { calculateDuration, formatDate, triggerToast, getLogicalTodayDate } from '../utils';
+import LiveStudyTimer from './LiveStudyTimer';
 
 interface StudyEntryProps {
   onAddEntry: (entry: Omit<StudyEntry, 'id' | 'accuracy' | 'durationMinutes'>) => void;
@@ -122,6 +127,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
   };
 
   const [date, setDate] = useState<string>(() => getLogicalTodayDate());
+  const [entryMode, setEntryMode] = useState<'manual' | 'timer'>('manual');
   const [startTime, setStartTime] = useState<string>('14:00');
   const [endTime, setEndTime] = useState<string>('16:00');
   const [subject, setSubject] = useState<NEETSubject>('Biology');
@@ -396,15 +402,47 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
 
   return (
     <div id="study-entry-section" className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      {/* Header with Mode Switcher */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
         <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Log Study Session</h1>
-          <p className="text-sm text-slate-500 mt-1">Manually record your finished study block to update your spaced repetition agenda.</p>
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Log Study Session</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {entryMode === 'manual'
+              ? 'Manually record your completed study block into your NEET preparation log.'
+              : 'Study with an immersive full-screen digital timer with clock visual and subject themes.'}
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-xs bg-medical-50 text-medical-700 px-3 py-1.5 rounded-full border border-medical-100 font-mono">
-          <Clock className="w-3.5 h-3.5" />
-          <span>No Timer Friction • Fast Manual Entries</span>
+
+        {/* Mode Switcher Tabs */}
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+          <button
+            type="button"
+            onClick={() => setEntryMode('manual')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              entryMode === 'manual'
+                ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-medical-600 dark:text-medical-400" />
+            <span>Manual Entry</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setEntryMode('timer')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              entryMode === 'timer'
+                ? 'bg-gradient-to-r from-medical-600 to-indigo-600 text-white shadow-md shadow-medical-900/20'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <Timer className="w-4 h-4" />
+            <span>Live Digital Timer</span>
+            <span className="bg-amber-400/20 text-amber-500 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full font-extrabold ml-0.5">
+              Live
+            </span>
+          </button>
         </div>
       </div>
 
@@ -419,7 +457,111 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Conditionally Render Live Study Timer vs Manual Entry */}
+      {entryMode === 'timer' ? (
+        <div className="space-y-6">
+          <LiveStudyTimer
+            onAddEntry={onAddEntry}
+            defaultSubject={subject}
+            defaultStudyType={studyType}
+          />
+
+          {/* Quick Subject Launch Cards below timer */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(['Biology', 'Chemistry', 'Physics'] as NEETSubject[]).map(subj => {
+              const count = entries.filter(e => e.subject === subj).length;
+              return (
+                <div
+                  key={subj}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    subj === 'Biology'
+                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 hover:border-emerald-400'
+                      : subj === 'Chemistry'
+                      ? 'bg-cyan-50/50 dark:bg-cyan-950/20 border-cyan-200 dark:border-cyan-900/40 hover:border-cyan-400'
+                      : 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/40 hover:border-indigo-400'
+                  }`}
+                  onClick={() => {
+                    setSubject(subj);
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      {subj === 'Biology' && <Dna className="w-4 h-4 text-emerald-500" />}
+                      {subj === 'Chemistry' && <FlaskConical className="w-4 h-4 text-cyan-500" />}
+                      {subj === 'Physics' && <Zap className="w-4 h-4 text-indigo-500" />}
+                      {subj}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {count} logged
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                    {subj === 'Biology' && 'NCERT line-by-line reading & botanical diagrams'}
+                    {subj === 'Chemistry' && 'Organic reaction mechanisms & physical formulas'}
+                    {subj === 'Physics' && 'Numerical derivations & conceptual drills'}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Recent Study Logs Section even in Timer Mode */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Award className="w-4 h-4 text-medical-600 dark:text-medical-400" /> Recent Study Session Logs
+              </h2>
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                {entries.length} Sessions Total
+              </span>
+            </div>
+
+            {entries.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-xs">
+                No entries logged yet. Start the digital timer above to begin your first session!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {entries.slice(0, 6).map(entry => (
+                  <div
+                    key={entry.id}
+                    className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          entry.subject === 'Biology'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : entry.subject === 'Chemistry'
+                            ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300'
+                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
+                        }`}>
+                          {entry.subject}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {entry.date}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">
+                        {entry.chapter}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        {entry.topic || 'General study'}
+                      </p>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                      <span>{Math.floor(entry.durationMinutes / 60)}h {entry.durationMinutes % 60}m</span>
+                      <span className="text-slate-400">{entry.studyType}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Entry Form Card */}
         <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -916,6 +1058,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
           </div>
         </div>
       </div>
+      )}
 
       {/* --- FLOATING EDIT ENTRY MODAL --- */}
       <AnimatePresence>

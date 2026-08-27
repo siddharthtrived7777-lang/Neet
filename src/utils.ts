@@ -37,13 +37,8 @@ export function getLogicalTodayDate(): string {
   return formatDate(now);
 }
 
-// Map any date and start time to the correct logical study date (e.g. before 6 AM is previous day)
+// Map any date and start time to the correct logical study date (respect the selected date directly)
 export function getLogicalDateForSession(dateStr: string, startTime: string): string {
-  if (!startTime) return dateStr;
-  const [startH] = startTime.split(':').map(Number);
-  if (startH < 6) {
-    return addDays(dateStr, -1);
-  }
   return dateStr;
 }
 
