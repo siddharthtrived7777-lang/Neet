@@ -19,11 +19,14 @@ import {
   Sparkles,
   Layers,
   ChevronUp,
-  Tag
+  Tag,
+  Share2,
+  Check,
+  Send
 } from 'lucide-react';
 import { StudyEntry, NEETSubject } from '../types';
 import { SUBJECT_COLORS } from '../neetData';
-import { getLogicalTodayDate } from '../utils';
+import { getLogicalTodayDate, triggerToast } from '../utils';
 
 interface HierarchicalStudyLogsProps {
   entries: StudyEntry[];
@@ -71,6 +74,110 @@ function formatDurationMinutes(mins: number): string {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
   return `${mins}m`;
+}
+
+function generateWhatsAppStudyReport(dateGroup: {
+  dateStr: string;
+  friendlyDate: string;
+  totalMinutes: number;
+  totalSolved: number;
+  sessionCount: number;
+  dayEntries: StudyEntry[];
+}): string {
+  const formattedDuration = formatDurationMinutes(dateGroup.totalMinutes);
+
+  let totalCorrect = 0;
+  let totalSolved = 0;
+  const subjectBreakdown: Record<string, { mins: number; count: number; solved: number; correct: number }> = {
+    Biology: { mins: 0, count: 0, solved: 0, correct: 0 },
+    Chemistry: { mins: 0, count: 0, solved: 0, correct: 0 },
+    Physics: { mins: 0, count: 0, solved: 0, correct: 0 },
+  };
+
+  dateGroup.dayEntries.forEach(e => {
+    totalSolved += e.mcqsSolved || 0;
+    totalCorrect += e.mcqsCorrect || 0;
+    if (!subjectBreakdown[e.subject]) {
+      subjectBreakdown[e.subject] = { mins: 0, count: 0, solved: 0, correct: 0 };
+    }
+    subjectBreakdown[e.subject].mins += e.durationMinutes || 0;
+    subjectBreakdown[e.subject].count += 1;
+    subjectBreakdown[e.subject].solved += e.mcqsSolved || 0;
+    subjectBreakdown[e.subject].correct += e.mcqsCorrect || 0;
+  });
+
+  const overallAccuracy = totalSolved > 0 ? Math.round((totalCorrect / totalSolved) * 100) : null;
+
+  let msg = `🩺 *NEET UG Study Report - ${dateGroup.friendlyDate}* 📚\n\n`;
+  msg += `⏱️ *Total Study Time:* ${formattedDuration}\n`;
+  msg += `📝 *Sessions Completed:* ${dateGroup.sessionCount}\n`;
+
+  if (totalSolved > 0) {
+    msg += `🎯 *MCQs Practiced:* ${totalSolved} solved (${totalCorrect} correct • ${overallAccuracy}% Accuracy)\n`;
+  }
+
+  msg += `\n📊 *Subject Breakdown:*\n`;
+  (['Biology', 'Chemistry', 'Physics'] as const).forEach(subj => {
+    const data = subjectBreakdown[subj];
+    if (data && data.mins > 0) {
+      const subjEmoji = subj === 'Biology' ? '🌿' : subj === 'Chemistry' ? '🧪' : '⚡';
+      msg += `${subjEmoji} *${subj}:* ${formatDurationMinutes(data.mins)} (${data.count} ${data.count === 1 ? 'session' : 'sessions'}`;
+      if (data.solved > 0) {
+        const acc = Math.round((data.correct / data.solved) * 100);
+        msg += ` • ${data.solved} MCQs, ${acc}% Acc`;
+      }
+      msg += `)\n`;
+    }
+  });
+
+  msg += `\n📖 *Detailed Sessions:*\n`;
+  dateGroup.dayEntries.forEach((entry, idx) => {
+    const subjEmoji = entry.subject === 'Biology' ? '🌿' : entry.subject === 'Chemistry' ? '🧪' : '⚡';
+    const timeRange = `${formatTo12Hour(entry.startTime)} - ${formatTo12Hour(entry.endTime)}`;
+    const durStr = formatDurationMinutes(entry.durationMinutes);
+
+    msg += `${idx + 1}. ${subjEmoji} *${entry.chapter}*\n`;
+    if (entry.topic) {
+      msg += `   📌 Topic: ${entry.topic}\n`;
+    }
+    msg += `   ⏱️ ${durStr} (${timeRange}) | ${entry.studyType}\n`;
+    if (entry.mcqsSolved > 0) {
+      msg += `   🎯 MCQs: ${entry.mcqsCorrect}/${entry.mcqsSolved} (${entry.accuracy}% Acc)\n`;
+    }
+    if (entry.notes) {
+      msg += `   💡 Note: ${entry.notes}\n`;
+    }
+    msg += `\n`;
+  });
+
+  msg += `✨ *Every day of focused study brings me closer to my dream medical college!* 🩺💪`;
+  return msg;
+}
+
+function generateSingleSessionWhatsApp(entry: StudyEntry): string {
+  const durStr = formatDurationMinutes(entry.durationMinutes);
+  const timeRange = `${formatTo12Hour(entry.startTime)} - ${formatTo12Hour(entry.endTime)}`;
+  const subjEmoji = entry.subject === 'Biology' ? '🌿' : entry.subject === 'Chemistry' ? '🧪' : '⚡';
+
+  let msg = `🩺 *NEET Study Session - ${entry.date}* 📚\n\n`;
+  msg += `${subjEmoji} *Subject:* ${entry.subject}\n`;
+  msg += `📖 *Chapter:* ${entry.chapter}\n`;
+  if (entry.topic) {
+    msg += `📌 *Topic:* ${entry.topic}\n`;
+  }
+  msg += `⏱️ *Duration:* ${durStr} (${timeRange})\n`;
+  msg += `📝 *Study Type:* ${entry.studyType}\n`;
+  msg += `🌟 *Confidence:* ${entry.confidenceLevel}\n`;
+
+  if (entry.mcqsSolved > 0) {
+    msg += `🎯 *MCQs:* ${entry.mcqsCorrect}/${entry.mcqsSolved} correct (${entry.accuracy}% Accuracy)\n`;
+  }
+  if (entry.notes) {
+    msg += `💡 *Notes:* ${entry.notes}\n`;
+  }
+
+  msg += `\n✨ *Consistency is the key to NEET success!* 🩺💪`;
+  return msg;
 }
 
 export default function HierarchicalStudyLogs({
@@ -237,6 +344,41 @@ export default function HierarchicalStudyLogs({
     });
     setExpandedMonths(newMonths);
     setExpandedDates(newDates);
+  };
+
+  const shareDayToWhatsApp = (dateGroup: {
+    dateStr: string;
+    friendlyDate: string;
+    totalMinutes: number;
+    totalSolved: number;
+    sessionCount: number;
+    dayEntries: StudyEntry[];
+  }) => {
+    const text = generateWhatsAppStudyReport(dateGroup);
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+
+    const encodedText = encodeURIComponent(text);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+
+    triggerToast(`Daily study report copied to clipboard & opening WhatsApp!`, 'success');
+  };
+
+  const shareSingleSessionToWhatsApp = (entry: StudyEntry) => {
+    const text = generateSingleSessionWhatsApp(entry);
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+
+    const encodedText = encodeURIComponent(text);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+
+    triggerToast(`Session report copied to clipboard & opening WhatsApp!`, 'success');
   };
 
   return (
@@ -413,47 +555,66 @@ export default function HierarchicalStudyLogs({
                             key={dateGroup.dateStr}
                             className="border border-slate-200/80 dark:border-slate-800/80 rounded-xl overflow-hidden bg-white dark:bg-slate-850 shadow-2xs"
                           >
-                            {/* LEVEL 2 HEADER: DATE ACCORDION BUTTON */}
-                            <button
-                              type="button"
-                              onClick={() => toggleDate(dateGroup.dateStr, month.monthKey)}
-                              className="w-full text-left px-3 py-2 bg-slate-50/90 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-750 transition-all flex items-center justify-between border-b border-slate-100 dark:border-slate-750/70 cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
-                                  {isDateOpen ? (
-                                    <ChevronDown className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
-                                  ) : (
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                                  )}
-                                </span>
-
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                    {dateGroup.friendlyDate}
-                                  </span>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-[9px] font-semibold font-mono text-slate-500 dark:text-slate-400 bg-slate-200/50 dark:bg-slate-750 px-1.5 py-0.2 rounded">
-                                      {dateGroup.sessionCount} {dateGroup.sessionCount === 1 ? 'Session' : 'Sessions'}
-                                    </span>
-                                    {dateGroup.totalSolved > 0 && (
-                                      <span className="text-[9px] font-semibold font-mono text-medical-700 dark:text-medical-300 bg-medical-50 dark:bg-medical-950/50 border border-medical-200/50 dark:border-medical-800/50 px-1.5 py-0.2 rounded">
-                                        {dateGroup.totalSolved} MCQs
-                                      </span>
+                            {/* LEVEL 2 HEADER: DATE ACCORDION BUTTON & WHATSAPP SHARE */}
+                            <div className="w-full bg-slate-50/90 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-750 transition-all flex items-center justify-between border-b border-slate-100 dark:border-slate-750/70">
+                              <button
+                                type="button"
+                                onClick={() => toggleDate(dateGroup.dateStr, month.monthKey)}
+                                className="flex-1 text-left px-3 py-2 flex items-center justify-between cursor-pointer min-w-0"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0">
+                                    {isDateOpen ? (
+                                      <ChevronDown className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+                                    ) : (
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                                     )}
+                                  </span>
+
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                      {dateGroup.friendlyDate}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                      <span className="text-[9px] font-semibold font-mono text-slate-500 dark:text-slate-400 bg-slate-200/50 dark:bg-slate-750 px-1.5 py-0.2 rounded">
+                                        {dateGroup.sessionCount} {dateGroup.sessionCount === 1 ? 'Session' : 'Sessions'}
+                                      </span>
+                                      {dateGroup.totalSolved > 0 && (
+                                        <span className="text-[9px] font-semibold font-mono text-medical-700 dark:text-medical-300 bg-medical-50 dark:bg-medical-950/50 border border-medical-200/50 dark:border-medical-800/50 px-1.5 py-0.2 rounded">
+                                          {dateGroup.totalSolved} MCQs
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              <div className="text-right flex flex-col items-end shrink-0">
-                                <span className="text-[11px] font-bold text-medical-800 dark:text-medical-400 font-mono">
-                                  {formatDurationMinutes(dateGroup.totalMinutes)}
-                                </span>
-                                <span className="text-[8px] font-medium uppercase tracking-wider text-slate-400">
-                                  Day Total
-                                </span>
+                                <div className="text-right flex flex-col items-end shrink-0 px-2">
+                                  <span className="text-[11px] font-bold text-medical-800 dark:text-medical-400 font-mono">
+                                    {formatDurationMinutes(dateGroup.totalMinutes)}
+                                  </span>
+                                  <span className="text-[8px] font-medium uppercase tracking-wider text-slate-400">
+                                    Day Total
+                                  </span>
+                                </div>
+                              </button>
+
+                              {/* Small WhatsApp Share Button */}
+                              <div className="pr-2.5 shrink-0 flex items-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    shareDayToWhatsApp(dateGroup);
+                                  }}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-emerald-700 hover:text-white bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white border border-emerald-200 dark:border-emerald-800 shadow-2xs transition-all cursor-pointer group active:scale-95"
+                                  title={`Share ${dateGroup.friendlyDate} study log to WhatsApp`}
+                                  aria-label={`Share ${dateGroup.friendlyDate} study log to WhatsApp`}
+                                >
+                                  <Share2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover:text-white transition-colors" />
+                                  <span className="font-semibold text-[9px] tracking-tight">Share</span>
+                                </button>
                               </div>
-                            </button>
+                            </div>
 
                             {/* LEVEL 3: DAY STUDY SESSIONS */}
                             <AnimatePresence initial={false}>
@@ -496,8 +657,16 @@ export default function HierarchicalStudyLogs({
                                             )}
                                           </div>
 
-                                          {/* Action Buttons: Edit and Delete */}
+                                          {/* Action Buttons: Share, Edit and Delete */}
                                           <div className="flex gap-1 shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => shareSingleSessionToWhatsApp(entry)}
+                                              className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 p-1 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all cursor-pointer border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900"
+                                              title="Share this session to WhatsApp"
+                                            >
+                                              <Share2 className="w-3.5 h-3.5" />
+                                            </button>
                                             <button
                                               type="button"
                                               onClick={() => onOpenEditModal(entry)}

@@ -5,10 +5,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check } from 'lucide-react';
+import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check, Share2 } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry, NEETSubject } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
-import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum } from '../utils';
+import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum, triggerToast } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
 
 const NEET_MOTIVATIONAL_THOUGHTS = [
@@ -634,7 +634,54 @@ export default function Dashboard({
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[220px]">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-2 min-w-0 flex-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study Load</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today's Study Load</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const logicalToday = getLogicalTodayDate();
+                    const todayEntries = entries.filter(e => e.date === logicalToday);
+                    const totalMins = todayMetrics.studyMins;
+                    const totalSolved = todayEntries.reduce((acc, curr) => acc + (curr.mcqsSolved || 0), 0);
+                    const totalCorrect = todayEntries.reduce((acc, curr) => acc + (curr.mcqsCorrect || 0), 0);
+                    const formattedHours = formatMinutesToDecimalHours(totalMins);
+
+                    let msg = `🩺 *NEET UG Study Report - Today (${logicalToday})* 📚\n\n`;
+                    msg += `⏱️ *Total Study Time:* ${formattedHours} hrs (${totalMins} mins)\n`;
+                    msg += `📝 *Sessions Completed:* ${todayEntries.length}\n`;
+
+                    if (totalSolved > 0) {
+                      const acc = Math.round((totalCorrect / totalSolved) * 100);
+                      msg += `🎯 *MCQs Practiced:* ${totalSolved} solved (${totalCorrect} correct • ${acc}% Accuracy)\n`;
+                    }
+
+                    if (todayEntries.length > 0) {
+                      msg += `\n📖 *Today's Sessions:*\n`;
+                      todayEntries.forEach((entry, idx) => {
+                        const subjEmoji = entry.subject === 'Biology' ? '🌿' : entry.subject === 'Chemistry' ? '🧪' : '⚡';
+                        msg += `${idx + 1}. ${subjEmoji} *${entry.chapter}* (${entry.studyType}) - ${entry.durationMinutes}m\n`;
+                      });
+                    }
+
+                    msg += `\n✨ *Consistency is the key to NEET success!* 🩺💪`;
+
+                    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                      navigator.clipboard.writeText(msg).catch(() => {});
+                    }
+
+                    const encodedText = encodeURIComponent(msg);
+                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+                    window.open(whatsappUrl, '_blank');
+
+                    triggerToast(`Today's study report copied & opening WhatsApp!`, 'success');
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold text-emerald-700 hover:text-white bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white border border-emerald-200 dark:border-emerald-800 shadow-2xs transition-all cursor-pointer group active:scale-95 shrink-0"
+                  title="Share Today's Study Stats to WhatsApp"
+                >
+                  <Share2 className="w-2.5 h-2.5 text-emerald-600 group-hover:text-white transition-colors" />
+                  <span>WhatsApp</span>
+                </button>
+              </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-mono font-extrabold text-slate-800">{formatMinutesToDecimalHours(todayMetrics.studyMins)}</span>
                 <span className="text-xs text-slate-500 font-semibold">hours total</span>
