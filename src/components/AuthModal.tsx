@@ -123,17 +123,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {isSignUp 
-              ? 'Access and sync your NEET study progress across tablet and mobile devices for free.' 
-              : 'Sign in to synchronize your study logs and schedules securely.'}
+              ? 'Create your account to sync your study logs, streak, and schedules across your tablet and phone.' 
+              : 'Sign in to access your synchronized NEET study records.'}
           </p>
-          {isSignUp && (
-            <div className="mt-3.5 px-3 py-2 bg-emerald-50 border border-emerald-100/60 text-emerald-800 rounded-xl text-[10.5px] font-medium leading-relaxed text-left flex items-start gap-1.5">
-              <span className="text-base select-none mt-0.5 leading-none">💡</span>
-              <span>
-                <strong>Onboarding Tip:</strong> You can enter <strong>any email</strong> of your choice (e.g. <code>student@neet.com</code>) and a 6-character password. No email activation or code is required!
-              </span>
+
+          {/* Cross-Device Sync Guide Banner */}
+          <div className="mt-3.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-left space-y-1 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed">
+            <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300 text-xs">
+              <span>📱🔄📱 Multi-Device Sync Tip</span>
             </div>
-          )}
+            <p>
+              To sync between your <strong>tablet</strong> and <strong>mobile</strong>, you must use the <strong>exact same sign-in method</strong> on both:
+            </p>
+            <ul className="list-disc list-inside space-y-0.5 text-[10.5px] opacity-90 pl-1">
+              <li>If you tapped <strong>Continue with Google</strong> on your tablet, use <strong>Continue with Google</strong> on your phone.</li>
+              <li>If you created an account with <strong>Email & Password</strong>, use <strong>Sign In</strong> (not Create Account) with that password on your phone.</li>
+            </ul>
+          </div>
         </div>
 
         {error && (

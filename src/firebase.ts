@@ -15,8 +15,8 @@ const app = initializeApp({
 
 // Initialize Firestore with custom database ID and experimental force long-polling (highly recommended for sandboxed iframes)
 const db = firebaseConfig.firestoreDatabaseId 
-  ? initializeFirestore(app, { experimentalForceLongPolling: true }, firebaseConfig.firestoreDatabaseId)
-  : initializeFirestore(app, { experimentalForceLongPolling: true });
+  ? initializeFirestore(app, { experimentalForceLongPolling: true, ignoreUndefinedProperties: true }, firebaseConfig.firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalForceLongPolling: true, ignoreUndefinedProperties: true });
 
 // Initialize Auth
 const auth = getAuth(app);

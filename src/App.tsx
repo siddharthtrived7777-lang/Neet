@@ -58,6 +58,7 @@ import {
   testFirebaseConnection,
   fetchUserData,
   syncLocalDataToCloud,
+  subscribeToUserData,
   saveStudyEntryCloud,
   deleteStudyEntryCloud,
   saveTestEntryCloud,
@@ -255,55 +256,88 @@ export default function App() {
       }
     }
 
-    // Set up Auth state listener
+    // Set up Auth state listener and real-time cross-device sync
+    let unsubRealtime: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      if (unsubRealtime) {
+        unsubRealtime();
+        unsubRealtime = null;
+      }
+
       if (currentUser) {
         setSyncing(true);
         try {
           // Fetch existing database progress from cloud
           const cloudData = await fetchUserData(currentUser.uid);
+
+          // Get existing local storage data
+          let currentLocalEntries: StudyEntry[] = [];
+          let currentLocalTests: TestEntry[] = [];
+          try {
+            const storedE = localStorage.getItem('neet_study_entries');
+            if (storedE) currentLocalEntries = JSON.parse(storedE);
+            const storedT = localStorage.getItem('neet_tests');
+            if (storedT) currentLocalTests = JSON.parse(storedT);
+          } catch (e) {}
           
           if (
             cloudData.entries.length > 0 || 
             cloudData.tests.length > 0 || 
             cloudData.revisions.length > 0
           ) {
+            // Merge local and cloud entries so no entries logged offline on this device are lost!
+            const mergedEntriesMap = new Map<string, StudyEntry>();
+            currentLocalEntries.forEach(e => mergedEntriesMap.set(e.id, e));
+            cloudData.entries.forEach(e => mergedEntriesMap.set(e.id, e));
+            const mergedEntries = Array.from(mergedEntriesMap.values());
+
+            const mergedTestsMap = new Map<string, TestEntry>();
+            currentLocalTests.forEach(t => mergedTestsMap.set(t.id, t));
+            cloudData.tests.forEach(t => mergedTestsMap.set(t.id, t));
+            const mergedTests = Array.from(mergedTestsMap.values());
+
             const { nextEntries, nextStatuses, nextRevisions, changed } = normalizeBasicMaths(
-              cloudData.entries,
-              cloudData.chapterStatuses,
+              mergedEntries,
+              cloudData.chapterStatuses.length > 0 ? cloudData.chapterStatuses : initialStatuses,
               cloudData.revisions
             );
 
-            // Cloud has existing data, update client states and offline fallback
+            // Update client states and offline storage
             setEntries(nextEntries);
-            setTests(cloudData.tests);
+            setTests(mergedTests);
             setChapterStatuses(nextStatuses);
             setRevisions(nextRevisions);
 
             localStorage.setItem('neet_study_entries', JSON.stringify(nextEntries));
-            localStorage.setItem('neet_tests', JSON.stringify(cloudData.tests));
+            localStorage.setItem('neet_tests', JSON.stringify(mergedTests));
             localStorage.setItem('neet_chapter_statuses', JSON.stringify(nextStatuses));
             localStorage.setItem('neet_revisions', JSON.stringify(nextRevisions));
 
-            if (changed) {
-              // Sync corrected subjects back to cloud!
+            // If local had unsynced records not in cloud, push merged back to cloud!
+            if (mergedEntries.length > cloudData.entries.length || mergedTests.length > cloudData.tests.length || changed) {
               await syncLocalDataToCloud(currentUser.uid, {
                 entries: nextEntries,
-                tests: cloudData.tests,
+                tests: mergedTests,
                 chapterStatuses: nextStatuses,
                 revisions: nextRevisions
               });
             }
           } else {
-            // Cloud is empty, sync current local state up to Firestore
-            // Read from state or local variables to get latest loaded items
-            await syncLocalDataToCloud(currentUser.uid, {
-              entries: initialEntries,
-              tests: initialTests,
-              chapterStatuses: initialStatuses,
-              revisions: initialRevisions
-            });
+            // Cloud has 0 records for this UID, push current device records up to Firestore!
+            const entriesToUpload = currentLocalEntries.length > 0 ? currentLocalEntries : initialEntries;
+            const testsToUpload = currentLocalTests.length > 0 ? currentLocalTests : initialTests;
+
+            if (entriesToUpload.length > 0 || testsToUpload.length > 0) {
+              await syncLocalDataToCloud(currentUser.uid, {
+                entries: entriesToUpload,
+                tests: testsToUpload,
+                chapterStatuses: initialStatuses,
+                revisions: initialRevisions
+              });
+            }
           }
 
           // Sync exam date if authenticated
@@ -317,6 +351,54 @@ export default function App() {
               await saveExamDateCloud(currentUser.uid, localExamDate);
             }
           }
+
+          // Real-time synchronization listener across tablet and mobile
+          unsubRealtime = subscribeToUserData(currentUser.uid, {
+            onEntries: (liveEntries) => {
+              if (liveEntries && liveEntries.length > 0) {
+                setEntries(prev => {
+                  if (JSON.stringify(prev) !== JSON.stringify(liveEntries)) {
+                    localStorage.setItem('neet_study_entries', JSON.stringify(liveEntries));
+                    return liveEntries;
+                  }
+                  return prev;
+                });
+              }
+            },
+            onTests: (liveTests) => {
+              if (liveTests) {
+                setTests(prev => {
+                  if (JSON.stringify(prev) !== JSON.stringify(liveTests)) {
+                    localStorage.setItem('neet_tests', JSON.stringify(liveTests));
+                    return liveTests;
+                  }
+                  return prev;
+                });
+              }
+            },
+            onChapterStatuses: (liveStatuses) => {
+              if (liveStatuses && liveStatuses.length > 0) {
+                setChapterStatuses(prev => {
+                  if (JSON.stringify(prev) !== JSON.stringify(liveStatuses)) {
+                    localStorage.setItem('neet_chapter_statuses', JSON.stringify(liveStatuses));
+                    return liveStatuses;
+                  }
+                  return prev;
+                });
+              }
+            },
+            onRevisions: (liveRevisions) => {
+              if (liveRevisions) {
+                setRevisions(prev => {
+                  if (JSON.stringify(prev) !== JSON.stringify(liveRevisions)) {
+                    localStorage.setItem('neet_revisions', JSON.stringify(liveRevisions));
+                    return liveRevisions;
+                  }
+                  return prev;
+                });
+              }
+            }
+          });
         } catch (error) {
           console.error("Cloud synchronisation failed:", error);
         } finally {
@@ -325,7 +407,10 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubRealtime) unsubRealtime();
+    };
   }, []);
 
   // Save to Local Storage helpers
@@ -347,6 +432,61 @@ export default function App() {
   const saveRevisions = (updated: RevisionTask[]) => {
     setRevisions(updated);
     localStorage.setItem('neet_revisions', JSON.stringify(updated));
+  };
+
+  // Manual Force Push (Tablet -> Cloud)
+  const handleForcePushToCloud = async () => {
+    if (!auth.currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setSyncing(true);
+    try {
+      await syncLocalDataToCloud(auth.currentUser.uid, {
+        entries,
+        tests,
+        chapterStatuses,
+        revisions
+      });
+      triggerToast("✅ All current tablet/device data uploaded to Cloud! Open your phone to view.", "success");
+    } catch (err) {
+      console.error(err);
+      triggerToast("Cloud upload failed. Please verify internet connection.", "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Manual Force Pull (Cloud -> Mobile)
+  const handleForcePullFromCloud = async () => {
+    if (!auth.currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setSyncing(true);
+    try {
+      const cloudData = await fetchUserData(auth.currentUser.uid);
+      if (cloudData.entries.length > 0 || cloudData.tests.length > 0) {
+        setEntries(cloudData.entries);
+        setTests(cloudData.tests);
+        if (cloudData.chapterStatuses.length > 0) setChapterStatuses(cloudData.chapterStatuses);
+        setRevisions(cloudData.revisions);
+
+        localStorage.setItem('neet_study_entries', JSON.stringify(cloudData.entries));
+        localStorage.setItem('neet_tests', JSON.stringify(cloudData.tests));
+        localStorage.setItem('neet_chapter_statuses', JSON.stringify(cloudData.chapterStatuses));
+        localStorage.setItem('neet_revisions', JSON.stringify(cloudData.revisions));
+
+        triggerToast(`✅ Refreshed ${cloudData.entries.length} study logs and ${cloudData.tests.length} tests from cloud!`, "success");
+      } else {
+        triggerToast("Cloud database has no records yet for this user. Tap 'Push Data' from your tablet first.", "info");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Failed to fetch cloud records. Please try again.", "error");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSaveExamDate = async (date: string | null) => {
@@ -1099,10 +1239,28 @@ export default function App() {
           <BookOpen className="w-5.5 h-5.5 text-medical-200" />
           <span className="font-display font-black text-sm tracking-wide">NEET STUDY PLANNER</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Cloud Sync Status Indicator for Mobile */}
+          <button
+            onClick={() => {
+              if (!user) {
+                setIsAuthModalOpen(true);
+              } else {
+                setIsSidebarOpen(true);
+              }
+            }}
+            className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              user 
+                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-amber-950/60 text-amber-400 border border-amber-500/30 animate-pulse'
+            }`}
+            title={user ? `Synced as: ${user.email} (Tap for sync controls)` : "Offline Mode - Tap to Sign In & Sync with Tablet"}
+          >
+            {user ? <Cloud className="w-4 h-4 text-emerald-400" /> : <CloudOff className="w-4 h-4 text-amber-400" />}
+          </button>
           <button
             onClick={() => setIsDark(!isDark)}
-            className="p-1.5 text-slate-300 hover:text-white transition-all rounded-lg"
+            className="p-1.5 text-slate-300 hover:text-white transition-all rounded-lg cursor-pointer"
             title={isDark ? "Light Mode" : "Dark Mode"}
           >
             {isDark ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-400" />}
@@ -1110,7 +1268,7 @@ export default function App() {
           {getExamCountdown(true)}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 text-slate-200 hover:text-white"
+            className="p-1 text-slate-200 hover:text-white cursor-pointer"
           >
             {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -1145,8 +1303,8 @@ export default function App() {
           <nav className="space-y-1">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-              { id: 'roadmap', label: 'AI Study Roadmap', icon: Compass },
               { id: 'log-session', label: 'Log Study Session', icon: PlusCircle },
+              { id: 'roadmap', label: 'AI Study Roadmap', icon: Compass },
               { id: 'revisions', label: 'Spaced Revisions', icon: Calendar },
               { id: 'syllabus', label: 'Syllabus Tracker', icon: Layers },
               { id: 'analytics', label: 'Analytics', icon: BarChart2 },
@@ -1233,32 +1391,68 @@ export default function App() {
           <div className="space-y-1.5 border-t border-slate-800 pt-2.5">
             <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-500 block">Cloud database sync</span>
             {user ? (
-              <div className="bg-slate-800/60 rounded-lg p-2.5 border border-slate-700/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-[10px] text-slate-300 font-bold block overflow-hidden text-ellipsis whitespace-nowrap max-w-[130px]" title={user.email || ''}>
-                    {user.email}
+              <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></div>
+                    <span className="text-[10.5px] text-slate-200 font-bold truncate max-w-[110px]" title={user.email || ''}>
+                      {user.email}
+                    </span>
+                  </div>
+                  <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-750 text-slate-300 font-bold shrink-0">
+                    {user.providerData[0]?.providerId === 'google.com' ? 'Google' : 'Email/Pass'}
                   </span>
                 </div>
-                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1.5">
-                  {syncing ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-medical-400" />
-                      <span>Syncing progress...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Tablet & Mobile synced</span>
-                    </>
-                  )}
+
+                <div className="text-[9.5px] text-slate-300 flex items-center justify-between pt-0.5 border-t border-slate-700/40">
+                  <span className="flex items-center gap-1">
+                    {syncing ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin text-medical-400" />
+                        <span className="text-medical-400">Syncing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400 font-semibold">Live Synced</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="text-[9px] text-slate-400 font-mono">
+                    {entries.length} logs
+                  </span>
                 </div>
+
+                {/* Quick Manual Push / Pull buttons */}
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleForcePushToCloud}
+                    disabled={syncing}
+                    className="flex items-center justify-center gap-1 py-1.5 px-1.5 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-[9px] font-bold rounded-lg border border-slate-650 transition-all cursor-pointer disabled:opacity-50"
+                    title="Upload current tablet data to cloud database"
+                  >
+                    <Upload className="w-2.5 h-2.5 text-medical-400" />
+                    <span>Push Data</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForcePullFromCloud}
+                    disabled={syncing}
+                    className="flex items-center justify-center gap-1 py-1.5 px-1.5 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-[9px] font-bold rounded-lg border border-slate-650 transition-all cursor-pointer disabled:opacity-50"
+                    title="Refresh and pull cloud data onto this device"
+                  >
+                    <Download className="w-2.5 h-2.5 text-emerald-400" />
+                    <span>Pull Data</span>
+                  </button>
+                </div>
+
                 <button
                   onClick={async () => {
                     await signOut(auth);
                     triggerToast("Signed out successfully. Returning to offline local storage mode.", "info");
                   }}
-                  className="w-full text-center text-[9px] font-bold mt-2.5 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-300 rounded transition-all cursor-pointer flex items-center justify-center gap-1 border border-slate-800"
+                  className="w-full text-center text-[9px] font-bold py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-rose-300 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 border border-slate-800"
                 >
                   <LogOut className="w-3 h-3" /> Sign Out
                 </button>
@@ -1373,6 +1567,15 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'log-session' && (
+          <StudyEntryForm
+            onAddEntry={handleAddEntry}
+            entries={entries}
+            onDeleteEntry={handleDeleteEntry}
+            onEditEntry={handleEditEntry}
+          />
+        )}
+
         {activeTab === 'roadmap' && (
           <StudyRoadmapPage
             entries={entries}
@@ -1381,15 +1584,6 @@ export default function App() {
             revisions={revisions}
             examDate={examDate}
             onNavigateToTab={(tab) => setActiveTab(tab)}
-          />
-        )}
-
-        {activeTab === 'log-session' && (
-          <StudyEntryForm
-            onAddEntry={handleAddEntry}
-            entries={entries}
-            onDeleteEntry={handleDeleteEntry}
-            onEditEntry={handleEditEntry}
           />
         )}
 

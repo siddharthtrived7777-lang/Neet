@@ -5,45 +5,12 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check, Share2, Compass } from 'lucide-react';
+import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Plus, Trash2, Check, Share2, Compass } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry, NEETSubject } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
 import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum, triggerToast } from '../utils';
 import { calculateFocusInsight } from '../utils/focusInsight';
 
-const NEET_MOTIVATIONAL_THOUGHTS = [
-  "Consistency is the bridge between NEET goals and NEET success. Stay focused on your daily chapters!",
-  "Every single numerical solved in Physics brings you one step closer to your dream medical college.",
-  "Success in NEET isn't about luck. It is about reading NCERT line-by-line, revising consistently, and mastering your mistakes.",
-  "The pain of studying today is nothing compared to the pride of wearing that white coat and stethoscope tomorrow.",
-  "Do not count the hours you study, make the hours count. Revise Chemistry formulas and focus on your goal.",
-  "Biology demands precision and retention. Unblock your spaced revisions today to secure those 360 marks!",
-  "Mistakes are proof that you are trying. Analyze your mock tests, understand the concepts, and keep moving forward.",
-  "The difference between an ordinary aspirant and a NEET topper is what they do with their mock test mistakes.",
-  "Your dedication today determines your rank tomorrow. One chapter at a time, one day at a time, keep going!",
-  "Success doesn't come from what you do occasionally, it comes from what you do consistently.",
-  "When you feel like quitting, remember why you started this medical preparation journey in the first place.",
-  "Syllabus tracking and timely active recall are your ultimate weapons against forgetting curves. Trust the process.",
-  "Focus on progress, not perfection. Master your weak subjects today to build an unbreakable foundation.",
-  "A year of intense focus, discipline, and regular revision can change the trajectory of your entire life.",
-  "Every small study session is a deposit into your future medical career. Make today count!",
-  "Do not let what you cannot do interfere with what you can do. Strengthen your weak chapters now.",
-  "The best way to predict your NEET result is to create it through daily discipline and smart spacing.",
-  "Your dream medical college is waiting for you. Power through the revision and keep your concepts crystal clear.",
-  "An investment in knowledge always pays the best interest. Read NCERT, solve MCQs, and stay self-motivated.",
-  "Strive for excellence, and success will chase you. Master every difficult mechanism in Chemistry today.",
-  "Your only limit is your mind. Push yourself to finish today's focus chapters with high accuracy.",
-  "Preparation is the key to confidence. The more you revise today, the less you will panic on the exam day.",
-  "Hard work beats talent when talent doesn't work hard. Keep practicing your Physics numericals.",
-  "Believe you can and you're halfway there. Keep logging your study hours and reviewing regularly.",
-  "Your daily study logs build the brick-and-mortar of your medical dream. Stay consistent, stay strong!",
-  "NCERT is your ultimate guide. Read between the lines, solve NCERT exemplar questions, and solidify your grip.",
-  "Every mock test is a dress rehearsal for your NEET success. Celebrate the correct ones, study the wrong ones.",
-  "Active recall and spaced repetition are the science of remembering. Let the retention engine guide your study day.",
-  "Patience, persistence, and perspiration make an unbeatable combination for cracking NEET.",
-  "Don't stop when you are tired, stop when you are done. Your medical career begins with today's efforts.",
-  "A champion is defined not by their wins, but by how they recover from their setbacks. Keep pushing, Aspirant!"
-];
 
 const SIDDHARTH_GREETINGS = [
   "Good morning, Siddharth! Ready to make today another masterpiece in your prep?",
@@ -173,11 +140,6 @@ export default function Dashboard({
     return revisions.filter(r => !r.completed && r.dueDate === tomorrowStr);
   }, [revisions, tomorrowStr]);
 
-  // Daily new motivational thoughts based on the calendar date
-  const dailyThought = useMemo(() => {
-    const day = new Date().getDate();
-    return NEET_MOTIVATIONAL_THOUGHTS[(day - 1) % NEET_MOTIVATIONAL_THOUGHTS.length];
-  }, []);
 
   // Daily unique greeting for Siddharth
   const dailyGreeting = useMemo(() => {
@@ -315,18 +277,15 @@ export default function Dashboard({
           <div className="flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-white" /> NEET Preparation Console
           </div>
-          <h1 className="font-display text-xl md:text-2xl font-extrabold tracking-tight">
-            {dailyGreeting}
+          <h1 
+            className="font-display text-xl md:text-2xl font-extrabold tracking-tight text-white !text-white drop-shadow-sm flex items-center gap-2"
+            style={{ color: '#ffffff' }}
+          >
+            Hello Siddharth! 👋
           </h1>
-          <div className="mt-3 bg-white/10 backdrop-blur-md border border-white/15 rounded-xl px-4 py-3 flex items-start gap-3 shadow-inner">
-            <Quote className="w-5 h-5 text-amber-300 shrink-0 mt-0.5 opacity-80" />
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black text-amber-200 uppercase tracking-wider block">Daily Motivation</span>
-              <p className="text-xs text-slate-100 italic font-semibold leading-relaxed">
-                "{dailyThought}"
-              </p>
-            </div>
-          </div>
+          <p className="text-xs md:text-sm text-white/90 font-medium leading-relaxed">
+            {dailyGreeting}
+          </p>
         </div>
       </div>
 
