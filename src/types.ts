@@ -84,3 +84,66 @@ export interface RevisionTask {
   subtopics?: string;
   entryId?: string;
 }
+
+export interface LowConfidenceChapterAnalysis {
+  chapterName: string;
+  subject: NEETSubject;
+  currentConfidence: ConfidenceLevel | 'Unrated';
+  averageAccuracy: number;
+  totalHours: number;
+  totalMcqs: number;
+  reason: string;
+  urgencyScore: number;
+  lastStudiedDate: string | null;
+  overdueRevisionCount: number;
+  isWeakInMocks?: boolean;
+}
+
+export interface RoadmapSession {
+  id: string;
+  timeSlot: string;
+  subject: NEETSubject;
+  chapter: string;
+  activityType: 'Concept Drill' | 'NCERT Line-by-Line' | 'PYQ / MCQ Speed Test' | 'Active Recall & Error Log';
+  taskDescription: string;
+  durationMinutes: number;
+  highYieldTopics: string[];
+  targetMcqs: number;
+  completed?: boolean;
+}
+
+export interface RoadmapDay {
+  dayNumber: number;
+  dayLabel: string;
+  dateStr?: string;
+  focusTheme: string;
+  totalHours: number;
+  sessions: RoadmapSession[];
+  dailyChecklist: string[];
+  confidenceBoostTip: string;
+  completed?: boolean;
+}
+
+export interface GeneratedRoadmap {
+  id: string;
+  createdAt: string;
+  title: string;
+  overview: string;
+  strategy: string;
+  targetChaptersSummary: {
+    chapterName: string;
+    subject: NEETSubject;
+    currentConfidence: string;
+    targetMilestone: string;
+  }[];
+  weeklySchedule: RoadmapDay[];
+  milestones: string[];
+  subjectSplit: {
+    physicsHours: number;
+    chemistryHours: number;
+    biologyHours: number;
+  };
+  dailyHoursTarget: number;
+  generationMode: 'ai' | 'algorithmic';
+}
+

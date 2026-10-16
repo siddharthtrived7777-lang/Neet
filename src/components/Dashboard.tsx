@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check, Share2 } from 'lucide-react';
+import { Clock, Target, BookOpen, AlertCircle, Calendar, CheckSquare, Sparkles, Award, ArrowRight, Activity, Quote, Plus, Trash2, Check, Share2, Compass } from 'lucide-react';
 import { StudyEntry, ChapterStatus, RevisionTask, TestEntry, NEETSubject } from '../types';
 import { SUBJECT_COLORS, getChapterSubject } from '../neetData';
 import { formatDate, addDays, getLogicalTodayDate, formatMinutesToDecimalHours, formatMinutesToDecimalHoursNum, triggerToast } from '../utils';
@@ -1071,6 +1071,34 @@ export default function Dashboard({
           </button>
         </div>
 
+      </div>
+ 
+      {/* AI Study Roadmap Banner */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white rounded-2xl p-5 md:p-6 border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-medical-500/20 border border-medical-500/30 rounded-2xl text-medical-300 shrink-0 mt-0.5 shadow-inner">
+            <Compass className="w-6 h-6 animate-spin-slow" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-medical-500/25 text-medical-300 border border-medical-500/40">
+                AI Roadmap Engine
+              </span>
+              <h3 className="text-sm md:text-base font-bold text-white">Weekly Weakness Eradication Roadmap</h3>
+            </div>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              Diagnoses chapters with the lowest confidence levels in your database and designs an interleaved 7-day schedule with high-yield NCERT benchmarks to boost them to High confidence.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigateToTab('roadmap')}
+          className="flex items-center gap-2 px-4 py-2.5 bg-medical-600 hover:bg-medical-500 text-white text-xs font-extrabold rounded-xl shadow-md transition-all cursor-pointer whitespace-nowrap active:scale-95 shrink-0 self-stretch sm:self-auto justify-center"
+        >
+          <span>Open Study Roadmap</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Developer Attribution Footer */}

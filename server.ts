@@ -65,9 +65,9 @@ Instruction on tone and responses:
         parts: [{ text: msg.text }]
       }));
 
-      // Generate response using gemini-3.5-flash
+      // Generate response using gemini-3.8-flash
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.8-flash",
         contents: [
           ...mappedHistory,
           {
@@ -85,6 +85,137 @@ Instruction on tone and responses:
     } catch (err: any) {
       console.error("Gemini API error:", err);
       res.status(500).json({ error: err.message || "Failed to query Gemini AI" });
+    }
+  });
+
+  // API route for AI-Powered Weekly Study Roadmap Generator
+  app.post("/api/generate-roadmap", async (req: any, res: any) => {
+    try {
+      const { targetChapters, dailyHours = 6, intensity = "balanced", examDate, additionalNotes } = req.body;
+
+      if (!targetChapters || !Array.isArray(targetChapters) || targetChapters.length === 0) {
+        return res.status(400).json({ error: "At least one target chapter is required." });
+      }
+
+      const chapterSummaryText = targetChapters
+        .map((c: any, i: number) => `${i + 1}. [${c.subject}] ${c.chapterName} - Current Confidence: ${c.currentConfidence || 'Low'} (Accuracy: ${c.averageAccuracy || 0}%, Hours logged: ${c.totalHours || 0}h, Note: ${c.reason || 'Needs reinforcement'})`)
+        .join("\n");
+
+      const prompt = `You are the lead academic director and cognitive strategist for NEET (National Eligibility cum Entrance Test) Medical Entrance.
+A student has diagnosed their database and identified their lowest confidence chapters that urgently require remediation this week.
+
+TARGET CHAPTERS WITH LOWEST CONFIDENCE:
+${chapterSummaryText}
+
+STUDENT CONSTRAINTS & PREFERENCES:
+- Target daily study hours: ${dailyHours} hours/day (Total weekly study commitment: ${Number(dailyHours) * 7} hours)
+- Prep Intensity: ${intensity}
+- Target NEET Exam Date: ${examDate ? examDate : "Upcoming academic session"}
+${additionalNotes ? `- Specific student focus request: "${additionalNotes}"` : ""}
+
+TASK:
+Generate a comprehensive, psychologically optimized 7-Day Weekly Study Roadmap (Day 1 through Day 7) specifically engineered to elevate the student's confidence in these weak chapters from 'Low'/'Medium' to 'High'.
+
+PEDAGOGICAL REQUIREMENTS:
+1. Interleaving: Never spend an entire day on only one subject. Distribute each day into 2-3 focused sessions:
+   - Morning slot: High cognitive demand (Physics formulas/numericals or Physical Chemistry calculations).
+   - Afternoon slot: Organic reaction mechanisms or Inorganic conceptual tables.
+   - Evening/Night slot: Biology NCERT active recall, line-by-line reading & error notebook review.
+2. High-Yield Focus: Cite exact NCERT topics, formulas, or reaction mechanisms for each session.
+3. Realistic Targets: Provide exact MCQ practice counts and duration in minutes that match the ${dailyHours} hours/day constraint.
+4. Measurable Exit Criteria: For each day, provide a 3-4 item checklist and a confidence-boosting tip.
+
+OUTPUT FORMAT:
+You MUST respond with ONLY a valid, parseable JSON object (no surrounding commentary, no markdown ticks before or after) with this exact schema:
+{
+  "title": "String - Compelling, inspiring roadmap title",
+  "overview": "String - Concise analytical diagnosis explaining why these chapters were chosen and the weekly focus",
+  "strategy": "String - Strategic explanation of the cognitive sequencing and spaced repetition plan",
+  "targetChaptersSummary": [
+    {
+      "chapterName": "String",
+      "subject": "Physics | Chemistry | Biology",
+      "currentConfidence": "Low | Medium",
+      "targetMilestone": "String - concrete benchmark (e.g. 'Attain >80% accuracy in 50 PYQs and master Lens Maker formula')"
+    }
+  ],
+  "weeklySchedule": [
+    {
+      "dayNumber": 1,
+      "dayLabel": "Day 1 (Monday)",
+      "focusTheme": "String",
+      "totalHours": ${dailyHours},
+      "sessions": [
+        {
+          "id": "sess-1-1",
+          "timeSlot": "Morning (07:00 - 10:00)",
+          "subject": "Physics",
+          "chapter": "String",
+          "activityType": "Concept Drill | NCERT Line-by-Line | PYQ / MCQ Speed Test | Active Recall & Error Log",
+          "taskDescription": "String - specific actionable tasks",
+          "durationMinutes": 180,
+          "highYieldTopics": ["Topic 1", "Topic 2"],
+          "targetMcqs": 35
+        }
+      ],
+      "dailyChecklist": ["Item 1", "Item 2", "Item 3"],
+      "confidenceBoostTip": "String"
+    }
+  ],
+  "milestones": [
+    "String milestone 1",
+    "String milestone 2",
+    "String milestone 3",
+    "String milestone 4"
+  ],
+  "subjectSplit": {
+    "physicsHours": number,
+    "chemistryHours": number,
+    "biologyHours": number
+  }
+}`;
+
+      let response: any;
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.6,
+          }
+        });
+      } catch (err: any) {
+        console.warn("Primary model error, attempting fallback:", err?.message || err);
+        response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.6,
+          }
+        });
+      }
+
+      let responseText = response.text || "{}";
+      responseText = responseText.trim();
+      // Remove any unintentional markdown wrappers if present
+      if (responseText.startsWith("```json")) {
+        responseText = responseText.replace(/^```json/, "").replace(/```$/, "").trim();
+      } else if (responseText.startsWith("```")) {
+        responseText = responseText.replace(/^```/, "").replace(/```$/, "").trim();
+      }
+
+      const roadmapData = JSON.parse(responseText);
+      roadmapData.id = `roadmap-${Date.now()}`;
+      roadmapData.createdAt = new Date().toISOString();
+      roadmapData.dailyHoursTarget = dailyHours;
+      roadmapData.generationMode = "ai";
+
+      res.json({ roadmap: roadmapData });
+    } catch (err: any) {
+      console.error("Gemini Roadmap Generation API error:", err);
+      res.status(500).json({ error: err.message || "Failed to generate roadmap with Gemini AI" });
     }
   });
 

@@ -423,6 +423,7 @@ export default function StudyEntryForm({ onAddEntry, entries, onDeleteEntry, onE
           <LiveStudyTimer
             onAddEntry={onAddEntry}
             defaultSubject={subject}
+            defaultChapter={chapterQuery}
             defaultStudyType={studyType}
           />
 

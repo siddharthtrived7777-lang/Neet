@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   Flame,
   Sun,
-  Moon
+  Moon,
+  Compass
 } from 'lucide-react';
 import { StudyEntry, TestEntry, ChapterStatus, RevisionTask, NEETSubject, ChapterStatusType } from './types';
 import { getChapterSubject } from './neetData';
@@ -80,6 +81,7 @@ import AnalyticsPage from './components/AnalyticsPage';
 import TestTrackerPage from './components/TestTrackerPage';
 import SearchPage from './components/SearchPage';
 import TodayFocusPage from './components/TodayFocusPage';
+import StudyRoadmapPage from './components/StudyRoadmapPage';
 
 // Helper to fix any previously miscategorized "Basic Maths" entries to Physics
 function normalizeBasicMaths(
@@ -1143,6 +1145,7 @@ export default function App() {
           <nav className="space-y-1">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { id: 'roadmap', label: 'AI Study Roadmap', icon: Compass },
               { id: 'log-session', label: 'Log Study Session', icon: PlusCircle },
               { id: 'revisions', label: 'Spaced Revisions', icon: Calendar },
               { id: 'syllabus', label: 'Syllabus Tracker', icon: Layers },
@@ -1367,6 +1370,17 @@ export default function App() {
             tests={tests}
             onNavigateToTab={(tab) => setActiveTab(tab)}
             onQuickCompleteRevision={handleQuickCompleteRevision}
+          />
+        )}
+
+        {activeTab === 'roadmap' && (
+          <StudyRoadmapPage
+            entries={entries}
+            chapterStatuses={chapterStatuses}
+            tests={tests}
+            revisions={revisions}
+            examDate={examDate}
+            onNavigateToTab={(tab) => setActiveTab(tab)}
           />
         )}
 
